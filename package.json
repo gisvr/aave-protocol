@@ -7,7 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "deploy:mainnet": "export MAINNET=True && truffle migrate --network main",
+    "deploy:mainnet": "export MAINNET=True && truffle migrations --network main",
     "test:mainnet-fork": "export MAINNET_FORK=True && truffle test test/MainnetFork.test.js",
     "test": "truffle test"
   },
