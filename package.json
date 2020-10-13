@@ -1,0 +1,38 @@
+{
+  "name": "acbtc",
+  "version": "1.0.0",
+  "description": "AcBTC contracts",
+  "main": "truffle test",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "deploy:mainnet": "export MAINNET=True && truffle migrate --network main",
+    "test:mainnet-fork": "export MAINNET_FORK=True && truffle test test/MainnetFork.test.js",
+    "test": "truffle test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nutsfinance/acBTC.git"
+  },
+  "keywords": [
+    "acBTC"
+  ],
+  "author": "tech@nuts.finance",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nutsfinance/acBTC/issues"
+  },
+  "homepage": "https://github.com/nutsfinance/acBTC#readme",
+  "dependencies": {
+    "bignumber.js": "^9.0.1",
+    "dotenv": "^8.2.0",
+    "openzeppelin-solidity": "^2.5.1",
+    "truffle-hdwallet-provider": "^1.0.17",
+    "truffle-plugin-verify": "^0.4.0",
+    "yargs": "^15.4.1"
+  },
+  "devDependencies": {
+    "solidity-coverage": "^0.7.10"
+  }
+}
