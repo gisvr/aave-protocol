@@ -17,8 +17,21 @@ The source code included is the final production version of the protocol. Eventu
 
 ## Audits report
 
-- [Trails of Bits Smart Contracts audit](./docs/ToB_aave_protocol_final_report.pdf)
+- [Trails of Bits Smart Contracts audit](docs/audit/ToB_aave_protocol_final_report.pdf)
 
 - [Open Zeppelin Smart Contracts](https://blog.openzeppelin.com/aave-protocol-audit/)
 
+## Depoly
 truffle megrate --reset
+
+## test
+truffle test ./test/call.js
+
+
+
+## 代码分析
+Address Provier 管理相关的合约走的都是 可初始化的可升级管理代理
+> openzplin的 InitializableAdminUpgradeabilityProxy 
+
+
+

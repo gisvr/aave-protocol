@@ -1,7 +1,7 @@
 {
   "name": "acbtc",
   "version": "1.0.0",
-  "description": "AcBTC contracts",
+  "description": "Mint contracts",
   "main": "truffle test",
   "directories": {
     "test": "test"
@@ -9,7 +9,10 @@
   "scripts": {
     "deploy:mainnet": "export MAINNET=True && truffle migrations --network main",
     "test:mainnet-fork": "export MAINNET_FORK=True && truffle test test/MainnetFork.test.js",
-    "test": "truffle test"
+    "test": "truffle test",
+    "deploy:all": "truffle migrations",
+    "set:provider": "truffle migrations",
+    "view:html": "echo $npm_package_description"
   },
   "repository": {
     "type": "git",
