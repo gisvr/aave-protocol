@@ -21,6 +21,13 @@ The source code included is the final production version of the protocol. Eventu
 
 - [Open Zeppelin Smart Contracts](https://blog.openzeppelin.com/aave-protocol-audit/)
 
+## Compile
+```base
+truffle compile
+truffle console
+```
+
+
 ## Depoly
 truffle megrate --reset
 

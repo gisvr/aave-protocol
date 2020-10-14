@@ -31,6 +31,7 @@
     "bignumber.js": "^9.0.1",
     "dotenv": "^8.2.0",
     "openzeppelin-solidity": "^2.5.1",
+    "truffle": "^5.1.48",
     "truffle-hdwallet-provider": "^1.0.17",
     "truffle-plugin-verify": "^0.4.0",
     "yargs": "^15.4.1"

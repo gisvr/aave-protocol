@@ -1,5 +1,6 @@
 const LendingPoolAddressProvider = artifacts.require("LendingPoolAddressesProvider");
 const FeeProvider = artifacts.require("FeeProvider");
+const tokenTable = require("../utils/readCsv")
 const assert = require('assert');
 
 //truffle test ./test/send.js
@@ -9,6 +10,7 @@ let addressProvider
 
 contract("setLendingPoolAddressProvider", async () => {
     beforeEach(async () => {
+
         addressProvider = await LendingPoolAddressProvider.deployed()
     });
 
