@@ -32,7 +32,7 @@ module.exports = {
     //自定义build目录
     // contracts_build_directory: "./output",
     // 自定义 deploy 目录
-    // migrations_directory: "./migrations/mint",
+    migrations_directory: "./migrations/mint",
     /**
      * Networks define how you connect to your ethereum client and let you set the
      * defaults web3 uses to send transactions. If you don't specify one truffle

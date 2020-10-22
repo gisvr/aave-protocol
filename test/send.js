@@ -1,6 +1,6 @@
 const LendingPoolAddressProvider = artifacts.require("LendingPoolAddressesProvider");
 const FeeProvider = artifacts.require("FeeProvider");
-const tokenTable = require("../utils/readCsv")
+const tokenTable = require("../utils/readCsvSync")
 const assert = require('assert');
 
 //truffle test ./test/send.js

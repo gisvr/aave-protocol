@@ -1,5 +1,5 @@
 
-const tokenTable = require("../utils/readCsvSync")
+const tokenTable = require("../utils/readCsv")
 console.log(web3.currentProvider.host)
 contract("web3 ", async (accounts) => {
     it("getBalance", async () => {

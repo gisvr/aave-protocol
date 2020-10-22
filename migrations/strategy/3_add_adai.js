@@ -39,7 +39,7 @@ module.exports = async (deployer) => {
     params[2] = (await daiToken.decimals.call()).toString()
     params[3] = "DAIName"
     params[4] = "aDAI"
-    params[5] = {overwrite: false}
+    // params[5] = {overwrite: false} // migrate 参数
     // console.log("aToken Dai: ", ...params)
     await deployer.deploy(AToken, ...params) //,
 };
