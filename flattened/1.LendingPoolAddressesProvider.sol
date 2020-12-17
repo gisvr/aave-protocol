@@ -197,7 +197,7 @@ library Address {
      * It is unsafe to assume that an address for which this function returns
      * false is an externally-owned account (EOA) and not a contract.
      *
-     * Among others, `isContract` will return false for the following 
+     * Among others, `isContract` will return false for the following
      * types of addresses:
      *
      *  - an externally-owned account
@@ -510,7 +510,7 @@ pragma solidity ^0.5.0;
 
 /**
  * @title InitializableAdminUpgradeabilityProxy
- * @dev Extends from BaseAdminUpgradeabilityProxy with an initializer for 
+ * @dev Extends from BaseAdminUpgradeabilityProxy with an initializer for
  * initializing the implementation, admin, and init data.
  */
 contract InitializableAdminUpgradeabilityProxy is BaseAdminUpgradeabilityProxy, InitializableUpgradeabilityProxy {
@@ -551,7 +551,6 @@ contract AddressStorage {
 // File: contracts/interfaces/ILendingPoolAddressesProvider.sol
 
 pragma solidity ^0.5.0;
-
 /**
 @title ILendingPoolAddressesProvider interface
 @notice provides the interface to fetch the LendingPoolCore address

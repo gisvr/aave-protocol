@@ -1,20 +1,7 @@
 
 # [Aave Protocol](https://aave.com/) &middot; [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-
-Open source implementation of the Aave Decentralized Lending Pools protocol. Version 1.0
-
-
-## Documentation
-
-It is possible to find documention to integrate the Aave Protocol on [developers.aave.com](https://developers.aave.com)
-
-For a deep explanation of the Aave Protocol, read the [White Paper](./docs/Aave_Protocol_Whitepaper_v1_0.pdf)
-
-
-## Source code
-
-The source code included is the final production version of the protocol. Eventual changes (smart contracts updates, bug fixes, etc.) will be applied through subsequent merge requests.
-
+ 
+ 
 ## Audits report
 
 - [Trails of Bits Smart Contracts audit](docs/audit/ToB_aave_protocol_final_report.pdf)
@@ -24,7 +11,6 @@ The source code included is the final production version of the protocol. Eventu
 ## Compile
 ```base
 truffle compile
-truffle console
 ```
 
 
@@ -35,11 +21,57 @@ truffle migrate --reset
 
 
 ## test
-truffle test ./test/call.js
-
-
-
+truffle devlop
+ 
 ## 代码分析
+重入问题
+[ReentrancyGuard](/Users/liyu/github/mars/aave-protocol/node_modules/openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol)
+
+```js
+pragma solidity ^0.5.0;
+
+/**
+ * @dev Contract module that helps prevent reentrant calls to a function.
+ *
+ * Inheriting from `ReentrancyGuard` will make the `nonReentrant` modifier
+ * available, which can be aplied to functions to make sure there are no nested
+ * (reentrant) calls to them.
+ *
+ * Note that because there is a single `nonReentrant` guard, functions marked as
+ * `nonReentrant` may not call one another. This can be worked around by making
+ * those functions `private`, and then adding `external` `nonReentrant` entry
+ * points to them.
+ */
+contract ReentrancyGuard {
+    /// @dev counter to allow mutex lock with only one SSTORE operation
+    uint256 private _guardCounter;
+
+    constructor () internal {
+        // The counter starts at one to prevent changing it from zero to a non-zero
+        // value, which is a more expensive operation.
+        _guardCounter = 1;
+    }
+
+    /**
+     * @dev Prevents a contract from calling itself, directly or indirectly.
+     * Calling a `nonReentrant` function from another `nonReentrant`
+     * function is not supported. It is possible to prevent this from happening
+     * by making the `nonReentrant` function external, and make it call a
+     * `private` function that does the actual work.
+     */
+    modifier nonReentrant() {
+        _guardCounter += 1;
+        uint256 localCounter = _guardCounter;
+        _;
+        require(localCounter == _guardCounter, "ReentrancyGuard: reentrant call");
+    }
+}
+```
+ 
+### 调试
+ remixd -s ~/dev/defi/mint-protocol/contracts --remix-ide https://remix.ethereum.org
+ 
+ ### 代理模型
 Address Provier 管理相关的合约走的都是 可初始化的可升级管理代理
 > openzplin的 InitializableAdminUpgradeabilityProxy 
 >
