@@ -21,7 +21,7 @@ truffle migrate --reset
 
 
 ## test
-truffle devlop
+truffle develop
  
 ## 代码分析
 重入问题

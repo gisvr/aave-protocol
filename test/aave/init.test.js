@@ -67,11 +67,11 @@ describe("Init Aave", async () => {
 
 
         let balance0 = await erc20Contract.balanceOf(alic)
-        console.log(reserve0Name,balance0.toString())
+        console.log(reserve0Name,balance0.toString(),erc20Contract.address)
 
         let batName  = await batContract.name();
         let batBalance0 = await batContract.balanceOf(alic)
-        console.log(batName,batBalance0.toString())
+        console.log(batName,batBalance0.toString(),batContract.address)
 
         const allowAmount = web3.utils.toWei("1000", "ether")
         await erc20Contract.approve(lpCoreAddr, allowAmount, {from: alic})
