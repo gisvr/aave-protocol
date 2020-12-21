@@ -4,6 +4,10 @@ let rpc = "http://39.102.101.142:8545"
 let web3 = new Web3(rpc)
 let web3Provider =web3.currentProvider; // new Web3.providers.HttpProvider(rpc); //web3.providers.HttpProvider //
 
+const AaveMarket = require("../../utils/aave");
+let nodeProvider = require("../../utils/ganache.provider");
+let aaveMarket = new  AaveMarket(web3);
+
 
 let contract = require("@truffle/contract");
 let lendingPool = require("../../build/contracts/LendingPool")
@@ -48,6 +52,9 @@ describe("Init Aave", async () => {
         })
         let lpAddr = await lpProviderContract.getLendingPool()
         lpContract =await lpContract.at(lpAddr)
+
+        this.lpDataPrivider = await lpProviderContract.getLendingPoolDataProvider();
+        this.lpDataPrividerContract = await nodeProvider.getMint("LendingPoolDataProvider", this.lpDataPrivider );
     });
 
     it("alic deposit DAI BAT", async () => {
@@ -140,6 +147,12 @@ describe("Init Aave", async () => {
         })
         reserve1balance0 = await reserve1Contract.balanceOf(alic)
         console.log(reserve1Name,reserve1balance0.toString())
+
+
+        console.log(this.lpDataPrividerContract.address)
+        let foo = await this.lpDataPrividerContract.calculateUserGlobalData(alic);
+
+        aaveMarket.calculateUserGlobalData(alic,foo,"300");
 
         // console.log(tx.tx)
     }).timeout(500000);

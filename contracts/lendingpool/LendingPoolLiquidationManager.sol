@@ -134,7 +134,7 @@ contract LendingPoolLiquidationManager is ReentrancyGuard, VersionedInitializabl
         (, , , , , , , vars.healthFactorBelowThreshold) = dataProvider.calculateUserGlobalData(
             _user
         );
-
+        // 健康阈值 false
         if (!vars.healthFactorBelowThreshold) {
             return (
                 uint256(LiquidationErrors.HEALTH_FACTOR_ABOVE_THRESHOLD),
