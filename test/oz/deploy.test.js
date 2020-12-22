@@ -30,8 +30,7 @@ const PriceOracle = contract.fromArtifact("PriceOracle");
 const LendingRateOracle = contract.fromArtifact("LendingRateOracle");
 
 // strategy
-const DefaultReserveInterestRateStrategy = contract.fromArtifact("DefaultReserveInterestRateStrategy");
-// const OptimizedReserveInterestRateStrategy = contract.fromArtifact("OptimizedReserveInterestRateStrategy");
+const OptimizedReserveInterestRateStrategy = contract.fromArtifact("OptimizedReserveInterestRateStrategy");
 
 // mock
 const TokenBAT = contract.fromArtifact("MockBAT");
@@ -142,9 +141,7 @@ describe("AAVE Deploy", function () {
 
             //strategy
             let reserveAddr = _token.address;
-            //OptimizedReserveInterestRateStrategy
-            // let strategy = await OptimizedReserveInterestRateStrategy.new(...strategyParams);
-            let strategy = await DefaultReserveInterestRateStrategy.new(reserveAddr,...strategyParams);
+            let strategy = await OptimizedReserveInterestRateStrategy.new(...strategyParams);
 
             // console.log("lpConfigurator.initReserve",symbol, reserveAddr, reserveDecimals, strategyAddr)
             await lpConfigurator.initReserve(reserveAddr, tokenDecimals.toString(), strategy.address)
@@ -243,7 +240,7 @@ describe("AAVE Deploy", function () {
 
         let _priceEth = await this.priceOracle.getAssetPrice(this.DAI.address);
         // 降价 50%
-          await  this.priceOracle.setAssetPrice(this.USDC.address,_priceEth.mul(new BN(8)).div(new BN(10)));
+          await  this.priceOracle.setAssetPrice(this.USDC.address,_priceEth.mul(new BN(1)).div(new BN(10)));
     }).timeout(500000);
 
     it("aave redeem next 30", async () => {
