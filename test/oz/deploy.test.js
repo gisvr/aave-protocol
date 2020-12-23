@@ -77,15 +77,18 @@ describe("AAVE Deploy", function () {
 
         //6
         let dateProvider = await LendingPoolDataProvider.new();
-        await provider.setLendingPoolDataProviderImpl(dateProvider.address);
+        // 特别注意这个设置 不是dataProvider 的设置
+        await provider.setLendingPoolDataProviderImpl(dateProvider.address);// await lpConfigurator.initialize(provider.address); //setLendingPoolDataProviderImpl 
+        
 
         //7
         let lpContract = await LendingPool.new();
         await provider.setLendingPoolImpl(lpContract.address);
-        lpConfigurator.initialize(provider.address);
+        await lpConfigurator.initialize(provider.address);
 
         let lpLiquManager = await LendingPoolLiquidationManager.new();
         await provider.setLendingPoolLiquidationManager(lpLiquManager.address);
+        await lpLiquManager.initialize(provider.address);
 
 
 
@@ -168,16 +171,29 @@ describe("AAVE Deploy", function () {
 
 
 
-        this.lpAddressProvider = provider
+        // this.lpAddressProvider = provider
 
         let lp = await provider.getLendingPool();
-        this.lpCoreAddr = await this.lpAddressProvider.getLendingPoolCore();
+        this.lpCoreAddr = await provider.getLendingPoolCore();
+        let lpDataProviderAdrr =  await provider.getLendingPoolDataProvider();
+
+
+
         this.lpContractProxy = await LendingPool.at(lp)
-        this.lpCoreContractProxy = await LendingPoolCore.at(this.lpCoreAddr)
+        this.lpCoreContractProxy = await LendingPoolCore.at(this.lpCoreAddr);
+        this.lpDataProviderProxy = await LendingPoolDataProvider.at(lpDataProviderAdrr);
+
+        let lpLiquManagerAdrr =  await provider.getLendingPoolLiquidationManager();
+        this.lpLiquMangerContractProxy =  lpLiquManager // await LendingPoolLiquidationManager.at(lpLiquManagerAdrr)
+
+        let _aDai =await this.lpCoreContractProxy.getReserveATokenAddress(this.DAI.address); 
+        this.aDAI =  await AToken.at(_aDai);
+        let _aUSDC =await this.lpCoreContractProxy.getReserveATokenAddress(this.USDC.address); 
+        this.aUSDC =  await AToken.at(_aUSDC);
 
     });
 
-    it("aave depoist 600 ", async () => {
+    it("alice,bob,sender depoist 600 DAI, BAT, USDC", async () => {
         this.timeout(50000)
 
         const allowAmount = web3.utils.toWei("600", "ether")
@@ -193,68 +209,151 @@ describe("AAVE Deploy", function () {
 
     }).timeout(500000);
 
-    it("aave redeem 300", async () => {
-        this.timeout(50000)
-        let _aDaiAddr =await this.lpCoreContractProxy.getReserveATokenAddress(this.DAI.address);
-        let aDAI =await AToken.at(_aDaiAddr);
+    it("alice redeem 300 DAI", async () => {
+        this.timeout(50000) 
         const amount = web3.utils.toWei("300", "ether")
-        let tx =await aDAI.redeem(amount,{from:alice});
-
-        console.log("aave redeem",tx.tx)
+        let tx =await this.aDAI.redeem(amount,{from:alice}); 
 
     }).timeout(500000);
 
-    it(`aave sender borrow `, async () => {
+    it(`sender borrow DAI`, async () => {
         this.timeout(50000)
+        let _reserve = this.DAI.address; 
 
-        // let borrowAmount = web3.utils.toWei("200", "ether")
+        let _priceEth =await this.priceOracle.getAssetPrice(_reserve);  // console.log("_priceEth",_priceEth.toString()); //2628633891158941 
 
-
-        let userAccountData = await this.lpContractProxy.getUserAccountData(sender)
-        let _priceEth =await this.priceOracle.getAssetPrice(this.DAI.address);
-        console.log(_priceEth.toString()); //2628633891158941
+        let userAccountData = await this.lpContractProxy.getUserAccountData(sender) 
         let borrowAmount = userAccountData.availableBorrowsETH.div(_priceEth);
-        console.log(borrowAmount.toString());
-        // borrowAmount = borrowAmount.mul(new BN(5)).div(new BN(10));
-        // borrowAmount = new BN(200) //borrowAmount.toString()
-        // console.log(borrowAmount.toString());
+        console.log("borrowAmount before",borrowAmount.toString());
+        
+        let beforeUser = await this.lpDataProviderProxy.calculateUserGlobalData(sender)
+        let beforeCurrentLiquidationThreshold = beforeUser[5].toString();
+        let beforeHealthFactor = beforeUser[6].toString();  
+        let beforeHealthFactorBelowThreshold = beforeUser[7].toString(); 
+        console.log("healthFactor before",  "  HealthFactorBelowThreshold ",beforeCurrentLiquidationThreshold,beforeHealthFactorBelowThreshold)
 
-
-        let reserveAddr = this.DAI.address;
         // 浮动率
-        tx = await this.lpContractProxy.borrow(reserveAddr, borrowAmount.mul(ethDecimalBN), 2, 0); //, {from:accounts[0]}
+         await this.lpContractProxy.borrow(_reserve, borrowAmount.mul(ethDecimalBN), 2, 0); //, {from:accounts[0]}
 
+        let afterUserAccountData = await this.lpContractProxy.getUserAccountData(sender)
+        let afterBorrowAmount = afterUserAccountData.availableBorrowsETH.div(_priceEth);
+        console.log("borrowAmount after", afterBorrowAmount.toString())
+        let afterUser = await this.lpDataProviderProxy.calculateUserGlobalData(sender)
+
+          beforeCurrentLiquidationThreshold = afterUser[5].toString();
+          beforeHealthFactor = afterUser[6].toString();  
+          beforeHealthFactorBelowThreshold = afterUser[7].toString(); 
+        console.log("healthFactor after",beforeHealthFactor,"  HealthFactorBelowThreshold ",beforeCurrentLiquidationThreshold,beforeHealthFactorBelowThreshold) 
+
+ 
+
+        // return;
         // 固定利率
         // tx = await this.lpContractProxy.borrow(this.DAI.address, borrowAmount, 1, 0); //, {from:accounts[0]}
-        console.log("account[1] borrow %s DAI ok ", borrowAmount)
-        console.log(tx.tx)
+        
+        // let userReserveData = await this.lpContractProxy.getUserReserveData(this.USDC.address, sender)
 
-        let userReserveData = await this.lpContractProxy.getUserReserveData(this.USDC.address, sender)
-
-        aaveMarket.userReserveData("DAI", userReserveData, "18");
+        // aaveMarket.userReserveData("DAI", userReserveData, "18");
 
     }).timeout(500000);
 
-    it("aave asset devaluation ", async () => {
+    it("sender transfer bob redeem 100 USDC", async () => {
+        this.timeout(50000)
+        let _reserve = this.USDC.address;  
+        const amount = web3.utils.toWei("1", "ether")
+        let usdcBalance = await this.aUSDC.balanceOf(sender);
+        console.log("usdcBalance",usdcBalance.toString())
+        
+        let isTransfer =await this.lpDataProviderProxy.balanceDecreaseAllowed(this.USDC.address, sender, amount);
+
+        // let isTransfer = await this.aUSDC.isTransferAllowed(sender,amount);
+        
+        console.log("isTransfer",isTransfer)
+        return;
+        if(isTransfer){
+             await this.aUSDC.transfer(bob,amount);
+            //  let tx =await this.aUSDC.redeem(amount);
+        }
+        //
+        let afterUser = await this.lpDataProviderProxy.calculateUserGlobalData(sender)
+
+        beforeCurrentLiquidationThreshold = afterUser[5].toString();
+        beforeHealthFactor = afterUser[6].toString();  
+        beforeHealthFactorBelowThreshold = afterUser[7].toString(); 
+        console.log("healthFactor after",beforeHealthFactor,"  HealthFactorBelowThreshold ",beforeCurrentLiquidationThreshold,beforeHealthFactorBelowThreshold,"\n") 
+ 
+
+    }).timeout(500000);
+
+    it("aave asset devaluation USDC", async () => {
+      
         this.timeout(50000)
 
-        let _priceEth = await this.priceOracle.getAssetPrice(this.DAI.address);
+        let _priceEth = await this.priceOracle.getAssetPrice(this.USDC.address);
         // 降价 50%
-          await  this.priceOracle.setAssetPrice(this.USDC.address,_priceEth.mul(new BN(1)).div(new BN(10)));
+        await  this.priceOracle.setAssetPrice(this.USDC.address,_priceEth.mul(new BN(1)).div(new BN(10)));
     }).timeout(500000);
 
-    it("aave redeem next 30", async () => {
-        this.timeout(50000)
-        let _aDaiAddr =await this.lpCoreContractProxy.getReserveATokenAddress(this.DAI.address);
-        let aDAI =await AToken.at(_aDaiAddr);
+    it("aave redeem next 30 DAI", async () => {
+        this.timeout(50000) 
         const amount = web3.utils.toWei("30", "ether")
-        let tx =await aDAI.redeem(amount,{from:alice});
+        let tx =await this.aDAI.redeem(amount,{from:alice});
+  
+    }).timeout(500000);
 
-        console.log("aave redeem",tx.tx)
+    it.skip("aave calculateAvailableCollateralToLiquidate", async () => {
+        let _user =sender;
+        let _reserve = this.DAI.address;
+        let _collateral = this.USDC.address
+        // let _reserveConfData = await this.lpContractProxy.getReserveConfigurationData(_reserve);
+
+        //  vars.userCollateralBalance = core.getUserUnderlyingAssetBalance(_collateral, _user);
+        let userCollateralBalance = await this.lpCoreContractProxy.getUserUnderlyingAssetBalance(_collateral, _user);
+        console.log("userCollateralBalance",userCollateralBalance.toString())
+        let originationFee =  await this.lpCoreContractProxy.getUserOriginationFee(_reserve, _user);
+        console.log("originationFee",originationFee.toString())
+
+        let borrowBalances =  await this.lpCoreContractProxy.getUserBorrowBalances(_reserve, _user);
+        console.log("borrowBalances.principal",borrowBalances[0].toString())
+        console.log("borrowBalances.userCompoundedBorrowBalance",borrowBalances[1].toString())
+        console.log("borrowBalances.borrowBalanceIncrease",borrowBalances[2].toString())
+
+       let liquidationBonus = await this.lpCoreContractProxy.getReserveLiquidationBonus(_collateral);
+
+        console.log("liquidationBonus",liquidationBonus.toString())
+
+
+        let version = await this.lpLiquMangerContractProxy.getMaxAmountCollateralToLiquidate(
+            _collateral, //_collateral
+            _reserve, //_reserve
+            originationFee);
+
+        console.log("getMaxAmountCollateralToLiquidate",version.toString())
+
+        let avaiableCollateral =  await this.lpLiquMangerContractProxy.calculateAvailableCollateralToLiquidate(
+            _collateral, //_collateral
+            _reserve, //_reserve
+            borrowBalances[1], //_purchaseAmount "60952380", //the amount of principal that the liquidator wants to repay
+            userCollateralBalance //_userCollateralBalance
+        );
+
+        console.log("borrow collateralAmount",avaiableCollateral.collateralAmount.toString())
+        console.log("borrow principalAmountNeeded",avaiableCollateral.principalAmountNeeded.toString())
+
+        let feeAvaiableCollateral =  await this.lpLiquMangerContractProxy.calculateAvailableCollateralToLiquidate(
+            _collateral, //_collateral
+            _reserve, //_reserve
+            originationFee, //_purchaseAmount "60952380", //the amount of principal that the liquidator wants to repay
+            userCollateralBalance //_userCollateralBalance
+        );
+
+        console.log("fee collateralAmount",feeAvaiableCollateral.collateralAmount.toString())
+        console.log("fee principalAmountNeeded",feeAvaiableCollateral.principalAmountNeeded.toString())
 
     }).timeout(500000);
 
-    it("aave liquidation", async () => {
+
+    it.skip("aave liquidation", async () => {
         let reserveAddr = this.DAI.address;
         let _reserveConfData = await this.lpContractProxy.getReserveConfigurationData(reserveAddr);
         let strategyAddr = aaveMarket.reserveConfData(_reserveConfData, "DAI")
@@ -265,7 +364,7 @@ describe("AAVE Deploy", function () {
 
         console.log("healthFactor",userAccountData.healthFactor.toString());
         let healthFactor =  userAccountData.healthFactor.div(ethDecimalBN).toNumber()
-        aaveMarket.userAccountData(sender,userAccountData,"300")
+        // aaveMarket.userAccountData(sender,userAccountData,"300")
         console.log("健康系数:", healthFactor)
 
         let borrowEth =  userAccountData.totalBorrowsETH //.div(ethDecimalBN)
@@ -336,14 +435,14 @@ describe("AAVE Deploy", function () {
         // total.mul(ten.pow(tokenDecimals))
 
         console.log("healthFactor",userAccountData.healthFactor.toString());
-         healthFactor =  userAccountData.healthFactor.div(ethDecimalBN).toString()
+        healthFactor =  userAccountData.healthFactor.div(ethDecimalBN).toString()
 
-        aaveMarket.userAccountData(sender,userAccountData,"300")
+        // aaveMarket.userAccountData(sender,userAccountData,"300")
         console.log("健康系数:", healthFactor)
 
     }).timeout(500000);
 
-    it("aave market", async () => {
+    it.skip("aave market", async () => {
         let reserveAddr = await  this.DAI.address
         let lpReserves = await  this.lpContractProxy.getReserves()
 
@@ -353,8 +452,6 @@ describe("AAVE Deploy", function () {
         );
 
         console.log("userReserveDataAfter 1",userReserveDataAfter.currentBorrowBalance.toString())
-
-
 
         console.log(lpReserves)
         let reserveConf= await this.lpContractProxy.getReserveConfigurationData(reserveAddr)

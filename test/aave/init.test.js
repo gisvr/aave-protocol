@@ -128,7 +128,7 @@ describe("Init Aave", async () => {
     }).timeout(500000);
 
 
-    it("alic borrow USDC", async () => {
+    it("alic borrow USDT", async () => {
         let lpReserves = await lpContract.getReserves()
         console.log("lpReserves", lpReserves)
         let reserve1 = lpReserves[2];
