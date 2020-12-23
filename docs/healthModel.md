@@ -98,7 +98,7 @@
             .mul(vars.currentLiquidationThreshold)
             .sub(vars.amountToDecreaseETH.mul(vars.reserveLiquidationThreshold))
             .div(vars.collateralBalancefterDecrease);
-        //8. 
+        //8. 计算最新的健康度
         uint256 healthFactorAfterDecrease = calculateHealthFactorFromBalancesInternal(
             vars.collateralBalancefterDecrease,
             vars.borrowBalanceETH,
@@ -213,7 +213,7 @@
             ? currentLiquidationThreshold.div(totalCollateralBalanceETH)
             : 0;
 
-        //
+        //计算健康阈值
         healthFactor = calculateHealthFactorFromBalancesInternal(
             totalCollateralBalanceETH,
             totalBorrowBalanceETH,

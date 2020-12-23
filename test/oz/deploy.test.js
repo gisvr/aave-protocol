@@ -49,6 +49,8 @@ let usdDecimalBN = (new BN(10)).pow(new BN(6));
 let ethDecimalBN = (new BN(10)).pow(new BN(18));
 let rayDecimalBN = (new BN(10)).pow(new BN(27));
 
+let eth16BN = (new BN(10)).pow(new BN(16));
+
 let oneHundredBN = new BN(100)
 
 describe("AAVE Deploy", function () {
@@ -241,7 +243,7 @@ describe("AAVE Deploy", function () {
         let afterUser = await this.lpDataProviderProxy.calculateUserGlobalData(sender)
 
           beforeCurrentLiquidationThreshold = afterUser[5].toString();
-          beforeHealthFactor = afterUser[6].toString();  
+          beforeHealthFactor = afterUser[6].div(eth16BN).toString();  
           beforeHealthFactorBelowThreshold = afterUser[7].toString(); 
         console.log("healthFactor after",beforeHealthFactor,"  HealthFactorBelowThreshold ",beforeCurrentLiquidationThreshold,beforeHealthFactorBelowThreshold) 
 
@@ -257,10 +259,10 @@ describe("AAVE Deploy", function () {
 
     }).timeout(500000);
 
-    it("sender transfer bob redeem 100 USDC", async () => {
+    it.skip("sender transfer bob redeem 100 USDC", async () => {
         this.timeout(50000)
         let _reserve = this.USDC.address;  
-        const amount = web3.utils.toWei("1", "ether")
+        const amount =  web3.utils.toWei("0.01", "ether")
         let usdcBalance = await this.aUSDC.balanceOf(sender);
         console.log("usdcBalance",usdcBalance.toString())
         
@@ -269,7 +271,7 @@ describe("AAVE Deploy", function () {
         // let isTransfer = await this.aUSDC.isTransferAllowed(sender,amount);
         
         console.log("isTransfer",isTransfer)
-        return;
+        
         if(isTransfer){
              await this.aUSDC.transfer(bob,amount);
             //  let tx =await this.aUSDC.redeem(amount);
@@ -278,7 +280,7 @@ describe("AAVE Deploy", function () {
         let afterUser = await this.lpDataProviderProxy.calculateUserGlobalData(sender)
 
         beforeCurrentLiquidationThreshold = afterUser[5].toString();
-        beforeHealthFactor = afterUser[6].toString();  
+        beforeHealthFactor = afterUser[6].div(eth16BN).toString();  
         beforeHealthFactorBelowThreshold = afterUser[7].toString(); 
         console.log("healthFactor after",beforeHealthFactor,"  HealthFactorBelowThreshold ",beforeCurrentLiquidationThreshold,beforeHealthFactorBelowThreshold,"\n") 
  
@@ -291,10 +293,18 @@ describe("AAVE Deploy", function () {
 
         let _priceEth = await this.priceOracle.getAssetPrice(this.USDC.address);
         // 降价 50%
-        await  this.priceOracle.setAssetPrice(this.USDC.address,_priceEth.mul(new BN(1)).div(new BN(10)));
+        await  this.priceOracle.setAssetPrice(this.USDC.address,_priceEth.mul(new BN(5)).div(new BN(10)));
+
+        let afterUser = await this.lpDataProviderProxy.calculateUserGlobalData(sender)
+
+        beforeCurrentLiquidationThreshold = afterUser[5].toString();
+        beforeHealthFactor = afterUser[6].div(eth16BN).toString();  
+        beforeHealthFactorBelowThreshold = afterUser[7].toString(); 
+        console.log("healthFactor after",beforeHealthFactor,"  HealthFactorBelowThreshold ",beforeCurrentLiquidationThreshold,beforeHealthFactorBelowThreshold,"\n") 
+ 
     }).timeout(500000);
 
-    it("aave redeem next 30 DAI", async () => {
+    it.skip("aave redeem next 30 DAI", async () => {
         this.timeout(50000) 
         const amount = web3.utils.toWei("30", "ether")
         let tx =await this.aDAI.redeem(amount,{from:alice});
@@ -353,7 +363,7 @@ describe("AAVE Deploy", function () {
     }).timeout(500000);
 
 
-    it.skip("aave liquidation", async () => {
+    it("aave liquidation", async () => {
         let reserveAddr = this.DAI.address;
         let _reserveConfData = await this.lpContractProxy.getReserveConfigurationData(reserveAddr);
         let strategyAddr = aaveMarket.reserveConfData(_reserveConfData, "DAI")
