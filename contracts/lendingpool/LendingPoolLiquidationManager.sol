@@ -28,11 +28,11 @@ contract LendingPoolLiquidationManager is ReentrancyGuard, VersionedInitializabl
     LendingPoolAddressesProvider public addressesProvider;
     LendingPoolCore core;
     LendingPoolDataProvider dataProvider;
-    LendingPoolParametersProvider parametersProvider;
-    IFeeProvider feeProvider;
-    address ethereumAddress;
+    // LendingPoolParametersProvider parametersProvider;
+    // IFeeProvider feeProvider;
+    // address ethereumAddress;
 
-    uint256 constant LIQUIDATION_CLOSE_FACTOR_PERCENT = 50;
+    uint256 constant public LIQUIDATION_CLOSE_FACTOR_PERCENT = 50;
 
     /**
     * @dev emitted when a borrow fee is liquidated
@@ -110,6 +110,40 @@ contract LendingPoolLiquidationManager is ReentrancyGuard, VersionedInitializabl
     */
     function getRevision() internal pure returns (uint256) {
         return 0;
+    }
+
+
+    function initialize(LendingPoolAddressesProvider _addressesProvider) public {
+        addressesProvider = _addressesProvider;
+        core = LendingPoolCore(_addressesProvider.getLendingPoolCore());
+    }
+
+
+    function getMaxAmountCollateralToLiquidate(
+        address _collateral,
+        address _principal,
+        uint256 _purchaseAmount
+    ) public view  returns (uint256) {  
+        IPriceOracleGetter oracle = IPriceOracleGetter(addressesProvider.getPriceOracle());
+
+        // Usage of a memory struct of vars to avoid "Stack too deep" errors due to local variables
+        AvailableCollateralToLiquidateLocalVars memory vars;
+
+        vars.collateralPrice = oracle.getAssetPrice(_collateral);
+        vars.principalCurrencyPrice = oracle.getAssetPrice(_principal);
+        //
+        vars.liquidationBonus = core.getReserveLiquidationBonus(_collateral);
+
+        //this is the maximum possible amount of the selected collateral that can be liquidated, given the
+        //max amount of principal currency that is available for liquidation.
+        vars.maxAmountCollateralToLiquidate = vars
+            .principalCurrencyPrice
+            .mul(_purchaseAmount)
+            .div(vars.collateralPrice)
+            .mul(vars.liquidationBonus)
+            .div(100);
+
+        return vars.maxAmountCollateralToLiquidate;
     }
 
     /**
@@ -316,7 +350,7 @@ contract LendingPoolLiquidationManager is ReentrancyGuard, VersionedInitializabl
         address _principal,
         uint256 _purchaseAmount,
         uint256 _userCollateralBalance
-    ) internal view returns (uint256 collateralAmount, uint256 principalAmountNeeded) {
+    ) public view returns (uint256 collateralAmount, uint256 principalAmountNeeded) {
         collateralAmount = 0;
         principalAmountNeeded = 0;
         IPriceOracleGetter oracle = IPriceOracleGetter(addressesProvider.getPriceOracle());
