@@ -94,7 +94,8 @@ index  = core.getReserveNormalizedIncome(underlyingAssetAddress);
     }
 ```
 
-线形利率模型 calculateLinearInterest
+## 存款利率 线形利率模型calculateLinearInterest
+> _rate * (存款时间/年时间) + 1
 ``` js
     /**
     * @dev function to calculate the interest using a linear interest rate formula
@@ -111,7 +112,7 @@ index  = core.getReserveNormalizedIncome(underlyingAssetAddress);
         // 块时间和 资产的最近更新时间  单位 秒 
         uint256 timeDifference = block.timestamp.sub(uint256(_lastUpdateTimestamp));
 
-        // 资产的时间差 / 一年的秒数
+        // 时间百分比例 = 时间差 / 一年的秒数
         uint256 timeDelta = timeDifference.wadToRay().rayDiv(SECONDS_PER_YEAR.wadToRay());
 
         // 当前年化利率 * （存款秒/年秒）+1e27
@@ -119,24 +120,48 @@ index  = core.getReserveNormalizedIncome(underlyingAssetAddress);
     }
 ```
 
- 复利 模型calculateCompoundedInterest
+## 借款利率 复利模型calculateCompoundedInterest > 
+> `rayPow` 存款秒数的 次方。（ratePerSecond+1) ^ time 
   ``` js
-    /**
-    * @dev function to calculate the interest using a compounded interest rate formula
-    * @param _rate the interest rate, in ray
-    * @param _lastUpdateTimestamp the timestamp of the last update of the interest
-    * @return the interest rate compounded during the timeDelta, in ray
-    **/
-    function calculateCompoundedInterest(uint256 _rate, uint40 _lastUpdateTimestamp)
-        internal
-        view
-        returns (uint256)
-    {
-        //solium-disable-next-line
+     /**
+	 * @dev function to calculate the interest using a compounded interest rate formula
+	 * @param _rate the interest rate, in ray
+	 * @param _lastUpdateTimestamp the timestamp of the last update of the interest
+	 * @return the interest rate compounded during the timeDelta, in ray
+	 **/
+	function calculateCompoundedInterest(
+		uint256 _rate,
+		uint40 _lastUpdateTimestamp
+	) internal view returns (uint256) {
+		// 计算时间差
         uint256 timeDifference = block.timestamp.sub(uint256(_lastUpdateTimestamp));
+        
+        // 计算每秒产生的利息 = 利率/一年的秒数 （rate单位 ray） 
+		uint256 ratePerSecond = _rate.div(SECONDS_PER_YEAR);
 
-        uint256 ratePerSecond = _rate.div(SECONDS_PER_YEAR);
+		return ratePerSecond.add(WadRayMath.ray()).rayPow(timeDifference);
+	}
+```
 
-        return ratePerSecond.add(WadRayMath.ray()).rayPow(timeDifference);
+## 复利计算函数
+```js
+> 2^76 > 75557863725914323419136 越界
+/**
+    * @dev calculates base^exp. The code uses the ModExp precompile
+    * @return base^exp, in ray
+    */
+    //solium-disable-next-line
+    function rayPow(uint256 x, uint256 n) internal pure returns (uint256 z) {
+        // x 代表基数
+        // n 代表 n次方 
+        z = n % 2 != 0 ? x : RAY;
+
+        for (n /= 2; n != 0; n /= 2) {
+            x = rayMul(x, x);
+
+            if (n % 2 != 0) {
+                z = rayMul(z, x);
+            }
+        }
     }
 ```
