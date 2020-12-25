@@ -396,7 +396,7 @@ contract LendingPoolLiquidationManager is
 	function getMaxAmountCollateralToLiquidate(
 		address _collateral,
 		address _principal,
-		uint256 _purchaseAmount
+		uint256 _purchaseAmount // 
 	) public view returns (uint256) {
 		IPriceOracleGetter oracle =
 			IPriceOracleGetter(addressesProvider.getPriceOracle());

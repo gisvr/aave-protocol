@@ -148,8 +148,8 @@
             // 将对应资产的AToken 转移给清算者
             collateralAtoken.transferOnLiquidation(_user, msg.sender, maxCollateralToLiquidate);
         } else {
-            //otherwise receives the underlying asset
-            //burn the equivalent amount of atoken
+            // otherwise receives the underlying asset
+            // burn the equivalent amount of atoken
             // burn ATonken，从core给清算者转账
             collateralAtoken.burnOnLiquidation(_user, maxCollateralToLiquidate);
             core.transferToUser(_collateral, msg.sender, maxCollateralToLiquidate);
@@ -219,8 +219,8 @@
 	function calculateAvailableCollateralToLiquidate(
 		address _collateral,// 抵押物
 		address _principal, // 流出资产
-		uint256 _purchaseAmount, // 清算数量，补充的流出资产计算。
-		uint256 _userCollateralBalance // 担保资产余额
+		uint256 _purchaseAmount, // 清算数量，补充的流出资产计算。 单位 补充资产的单位
+		uint256 _userCollateralBalance // 担保资产余额 单位ETH
 	)
 		public
 		view

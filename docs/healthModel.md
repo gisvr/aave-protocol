@@ -1,6 +1,6 @@
  LendingPoolDataProvider contract
 
-### 健康率计算
+### 健康率计算 calculateHealthFactorFromBalancesInternal
 > （抵押(ETH)*清算阈值(%)）/(借出(ETH)+费用(ETH)) = x(1e18)
 ```js
     /**
@@ -25,7 +25,7 @@
     }
 ```
 
-### 判断 用户资产是否健康
+### 判断 用户资产是否健康 balanceDecreaseAllowed
 
 ```js
     /**
@@ -111,7 +111,7 @@
     }
 ```
 
-### 获取健康数据
+### 获取用户的全局数据-计算健康度 calculateUserGlobalData
 >  LendingPoolDataProvider
 1. 流动性资产和抵押资产并不互斥是包含关系 totalLiquidityBalanceETH  和 totalCollateralBalanceETH 是 包含关系，并不互斥
 ``` js
@@ -226,6 +226,42 @@
     
 ```
 
+### 计算借贷余额 calculateAvailableBorrowsETHInternal
+> 计算可借贷余额
+```js 
+    /**
+	 * @dev calculates the equivalent amount in ETH that an user can borrow, depending on the available collateral and the
+	 * average Loan To Value.
+	 * @param collateralBalanceETH the total collateral balance
+	 * @param borrowBalanceETH the total borrow balance
+	 * @param totalFeesETH the total fees
+	 * @param ltv the average loan to value
+	 * @return the amount available to borrow in ETH for the user
+	 **/
+
+	function calculateAvailableBorrowsETHInternal(
+		uint256 collateralBalanceETH, //totalCollateralETH
+		uint256 borrowBalanceETH, // totalBorrowsETH
+		uint256 totalFeesETH, //totalFeesETH
+		uint256 ltv //
+    ) internal view returns (uint256) { // return availableBorrowsETH
+        // 按照 ltv loan to value 计算一个可借额度
+		uint256 availableBorrowsETH = collateralBalanceETH.mul(ltv).div(100); //ltv is in percentage
+
+		if (availableBorrowsETH < borrowBalanceETH) {
+			return 0;
+		}
+        // 可借额度-产生的费用
+		availableBorrowsETH = availableBorrowsETH.sub(
+			borrowBalanceETH.add(totalFeesETH)
+		);
+		//calculate fee
+		uint256 borrowFee =
+			IFeeProvider(addressesProvider.getFeeProvider())
+				.calculateLoanOriginationFee(msg.sender, availableBorrowsETH);
+		return availableBorrowsETH.sub(borrowFee);
+	}
+```
 
 ### 用户基础资产数据 getUserBasicReserveData 
 >  LendingPoolCore.sol

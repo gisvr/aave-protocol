@@ -31,7 +31,7 @@ module.exports = class AaveMarket extends Market {
             }
 
             let decimalKeys = {
-                "currentLiquidationThreshold": "当前 阀值",
+                "currentLiquidationThreshold": "当前 清算阀值",
                 "ltv": "LTV",
             }
             if (decimalKeys[key]) {

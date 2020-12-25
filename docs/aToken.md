@@ -1,6 +1,6 @@
 
   
-## initReserve 
+## 根据策略初始化AToken initReserve 
 ``` js
 
 function initReserve(

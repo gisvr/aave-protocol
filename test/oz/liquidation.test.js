@@ -305,15 +305,19 @@ describe("AAVE Liquidation", function () {
         // let _reserveConfData = await this.lpContractProxy.getReserveConfigurationData(_reserve);
 
         //  vars.userCollateralBalance = core.getUserUnderlyingAssetBalance(_collateral, _user);
+
+        // atoken的余额
         let userCollateralBalance = await this.lpCoreContractProxy.getUserUnderlyingAssetBalance(_collateral, _user);
  
         let _priceEth =await this.priceOracle.getAssetPrice(_collateral); 
 
-        userCollateralBalance = userCollateralBalance.div(usdDecimalBN).mul(_priceEth);
+        let userCollateralBalanceETH = userCollateralBalance.div(usdDecimalBN).mul(_priceEth);
 
-        console.log("用的抵押的余额userCollateralBalance",userCollateralBalance.toString())
+        console.log("用的抵押的余额userCollateralBalance %s ETH %s",userCollateralBalance.toString(),userCollateralBalanceETH.toString())
         let originationFee =  await this.lpCoreContractProxy.getUserOriginationFee(_reserve, _user);
-        console.log("DAI 借出费用 originationFee ETH",originationFee.toString())
+
+        let originationFeeETH = userCollateralBalance.div(usdDecimalBN).mul(_priceEth);
+        console.log("DAI 借出费用 originationFee %s ETH %s",originationFee.toString(),originationFeeETH.toString())
 
         let borrowBalances =  await this.lpCoreContractProxy.getUserBorrowBalances(_reserve, _user);
         console.log("DAI 借出原始 borrowBalances.principal",borrowBalances[0].toString())
@@ -369,7 +373,7 @@ describe("AAVE Liquidation", function () {
 
 
 
-    it("aave liquidation USDC", async () => {
+    it.skip("aave liquidation USDC", async () => {
         let reserveAddr = this.DAI.address;
         // let _reserveConfData = await this.lpContractProxy.getReserveConfigurationData(reserveAddr);
         // let strategyAddr = aaveMarket.reserveConfData(_reserveConfData, "DAI")
