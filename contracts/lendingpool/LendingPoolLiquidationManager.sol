@@ -35,7 +35,7 @@ contract LendingPoolLiquidationManager is
 	// IFeeProvider feeProvider;
 	// address ethereumAddress;
 
-	// uint256 constant public LIQUIDATION_CLOSE_FACTOR_PERCENT = 50;
+	uint256 constant public LIQUIDATION_CLOSE_FACTOR_PERCENT = 50;
 
 	/**
 	 * @dev emitted when a borrow fee is liquidated
@@ -194,7 +194,7 @@ contract LendingPoolLiquidationManager is
 		//all clear - calculate the max principal amount that can be liquidated
 		vars.maxPrincipalAmountToLiquidate = vars
 			.userCompoundedBorrowBalance
-			.mul(50) //LIQUIDATION_CLOSE_FACTOR_PERCENT
+			.mul(LIQUIDATION_CLOSE_FACTOR_PERCENT) //LIQUIDATION_CLOSE_FACTOR_PERCENT
 			.div(100);
 
 		vars.actualAmountToLiquidate = _purchaseAmount >
@@ -370,12 +370,14 @@ contract LendingPoolLiquidationManager is
 		//this is the maximum possible amount of the selected collateral that can be liquidated, given the
 		//max amount of principal currency that is available for liquidation.
 		vars.maxAmountCollateralToLiquidate = vars
-			.principalCurrencyPriceX
-			.mul(_purchaseAmount)
+			.principalCurrencyPrice // 借资产价格
+			.mul(_purchaseAmount)  // 借资产 数量
 			.div(vars.collateralPrice)
 			.mul(vars.liquidationBonus)
 			.div(100);
 
+		// maxAmountCollateralToLiquidate = (reveserETH*amount) / collEHT）* 105%
+		// _userCollateralBalance = collatreal Atoken balance   #BUG  以太坊数量单位，资产数量单位
 		if (vars.maxAmountCollateralToLiquidate > _userCollateralBalance) {
 			collateralAmount = _userCollateralBalance;
 			principalAmountNeeded = vars
@@ -418,6 +420,7 @@ contract LendingPoolLiquidationManager is
 			.mul(vars.liquidationBonus)
 			.div(100);
 
+	 	// (reveserETH*amount) / collEHT）* 105% 
 		return vars.maxAmountCollateralToLiquidate;
 	}
 }
