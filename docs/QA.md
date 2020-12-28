@@ -1,7 +1,7 @@
  
 ## 重入问题
 > 这个 oz 在不同版本中的 Reentrancy 处理方法不一致。
-[ReentrancyGuard](/Users/liyu/github/mars/aave-protocol/node_modules/openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol)
+[ReentrancyGuard](../node_modules/openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol)
 
 ```js
 pragma solidity ^0.5.0;
