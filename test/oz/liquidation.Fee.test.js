@@ -5,6 +5,7 @@ const {
     expectEvent,  // Assertions for emitted events
     expectRevert // Assertions for transactions that should fail
 } = require("@openzeppelin/test-helpers");
+const { tracker } = require("@openzeppelin/test-helpers/src/balance");
 
 const {expect} = require("chai");
 const AaveMarket = require("../../utils/aave");
@@ -211,7 +212,7 @@ describe("AAVE Liquidation Fee", function () {
         let _aDai =await this.lpCoreContractProxy.getReserveATokenAddress(this.DAI.address); 
         this.aDAI =  await AToken.at(_aDai);
         let _aUSDC =await this.lpCoreContractProxy.getReserveATokenAddress(this.TUSD.address); 
-        this.aUSDC =  await AToken.at(_aUSDC);
+        this.aTUSD =  await AToken.at(_aUSDC);
  
         let _fee = await provider.getFeeProvider();
 
@@ -439,10 +440,10 @@ describe("AAVE Liquidation Fee", function () {
         let liquidDai = await this.DAI.balanceOf(liquid)
         // console.log("DAI Before", liquidDai.toString())
 
-        let borrowBal=await this.aUSDC.balanceOf(sender);
-        let liquBal=await this.aUSDC.balanceOf(liquid); 
-        // console.log("Borrow aUSDC Before",borrowBal.toString())
-        // console.log("liquid aUSDC Before",liquBal.toString()) 
+        let borrowBal=await this.aTUSD.balanceOf(sender);
+        let liquBal=await this.aTUSD.balanceOf(liquid); 
+        // console.log("Borrow aTUSD Before",borrowBal.toString())
+        // console.log("liquid aTUSD Before",liquBal.toString()) 
 
         
         await this.DAI.approve(this.lpCoreAddr, _purchaseAmount.mul(new BN(10)),{from:liquid}) 
@@ -474,8 +475,9 @@ describe("AAVE Liquidation Fee", function () {
         console.log("liquid DAI Before - After %s", liquidDai.sub(_liquidDai).div(ethDecimalBN).toString()) // 
  
         // 未计算费用
-        let _borrowBal=await this.aUSDC.balanceOf(sender); 
-        let _liquBal=await this.aUSDC.balanceOf(liquid); // 清算用户本来有的资产
+        let _borrowBal=await this.aTUSD.balanceOf(sender); 
+        let _liquBal=await this.aTUSD.balanceOf(liquid); // 清算用户本来有的资产
+        
 
         let _fee=  reserveData.originationFee
         
@@ -487,9 +489,9 @@ describe("AAVE Liquidation Fee", function () {
             this.userCollateralBalance // 用户抵押物- 被清算抵押物 
         ); 
  
-        console.log("fee aUSDC %s,  %s",avaiableCollateral.collateralAmount.div(ethDecimalBN).toString(), avaiableCollateral.collateralAmount.toString());  
-        console.log("borrow aUSDC ", _borrowBal.div(ethDecimalBN).toString(),_borrowBal.toString())
-        console.log("liquid aUSDC ",_liquBal.div(ethDecimalBN).toString(),_liquBal.toString()); 
+        console.log("fee aTUSD %s,  %s",avaiableCollateral.collateralAmount.div(ethDecimalBN).toString(), avaiableCollateral.collateralAmount.toString());  
+        console.log("borrow aTUSD ", _borrowBal.div(ethDecimalBN).toString(),_borrowBal.toString())
+        console.log("liquid aTUSD ",_liquBal.div(ethDecimalBN).toString(),_liquBal.toString()); 
  
  
         expect(borrowBal).to.be.bignumber.eq(_borrowBal.add(_liquBal).add(avaiableCollateral.collateralAmount),"清算结果=清算人+被清算人+fee");    
