@@ -65,7 +65,7 @@ let ltv ="75", liquidationThreshold = "85", liquidationBonus ="105";
 let ethUSD = "500";
 let usdETH = "0.002" //1美元对应的 ETH
 
-let _purchaseAmount = (new BN("500")).mul(ethDecimalBN); // borrowBalances[1] //1e18.toString(); //reserve 的单位 
+let _purchaseAmount = (new BN("370")).mul(ethDecimalBN); //374 临界值
 
 
 describe("AAVE Liquidation", function () {
@@ -260,7 +260,7 @@ describe("AAVE Liquidation", function () {
         // 将可借的 EHT转换成对应的资产
         let borrowAmount = availableBorrowsETH.mul(ethDecimalBN).div(_priceEth);
 
-        console.log("借出",borrowAmount.toString(),borrowAmount.div(ethDecimalBN).toString())
+        console.log("borrow DAI",borrowAmount.div(ethDecimalBN).toString(),borrowAmount.toString(),)
  
         // 浮动率借款
         await this.lpContractProxy.borrow(_reserve, borrowAmount, 2, 0); 
@@ -288,19 +288,7 @@ describe("AAVE Liquidation", function () {
         // 检查费用
         expect(userAccountData.totalFeesETH).to.be.bignumber.equal(borrowFee);  
 
-
-        // aaveMarket.userAccountData(sender,userAccountData,ethUSD)
-        // aaveMarket.userReserveData("DAI",userReserveData,"18")
-
  
-
-        // return;
-        // 固定利率
-        // tx = await this.lpContractProxy.borrow(this.DAI.address, borrowAmount, 1, 0); //, {from:accounts[0]}
-        
-        // let userReserveData = await this.lpContractProxy.getUserReserveData(this.TUSD.address, sender)
-
-        // aaveMarket.userReserveData("DAI", userReserveData, "18");
 
     }).timeout(500000);
  
@@ -309,10 +297,12 @@ describe("AAVE Liquidation", function () {
 
         let _collateral = this.TUSD.address; 
         let _priceEth = await this.priceOracle.getAssetPrice(_collateral);
-        // 降价 50%
+        
+        console.log("collateral TUSD price", _priceEth.toString())
         await  this.priceOracle.setAssetPrice(_collateral,_priceEth.mul(new BN(85)).div(new BN(100)));
 
-        _priceEth =  await this.priceOracle.getAssetPrice(_collateral);
+        let _newPriceEth =  await this.priceOracle.getAssetPrice(_collateral);
+        console.log("collateral TUSD price setPrice %s, reduce price %s % ", _newPriceEth.toString(),_newPriceEth.mul(new BN(100)).div(_priceEth).toString())
 
         let afterUser = await this.lpDataProviderProxy.calculateUserGlobalData(sender)
  
@@ -333,7 +323,7 @@ describe("AAVE Liquidation", function () {
         let userAccountData = await this.lpContractProxy.getUserAccountData(sender); 
 
         let userCollateralBalance = await this.lpCoreContractProxy.getUserUnderlyingAssetBalance(_collateral, sender);  
-        let userCollateralBalanceETH = userCollateralBalance.div(ethDecimalBN).mul(_priceEth); 
+        let userCollateralBalanceETH = userCollateralBalance.div(ethDecimalBN).mul(_newPriceEth); 
         expect(userCollateralBalance).to.be.bignumber.eq(userReserveData.currentATokenBalance,"atoken余额");  
         expect(userCollateralBalanceETH).to.be.bignumber.equal(userAccountData.totalCollateralETH,"用户总计：抵押资产"); 
  
@@ -345,11 +335,14 @@ describe("AAVE Liquidation", function () {
     }).timeout(500000);
  
  
-    it("Sender calculate Available Collateral To Liquidate DAI", async () => {
+    it("sender calculate Available Collateral To Liquidate DAI", async () => {
 
         await this.lpLiquMangerContract.initialize(this.lpAddressProvider.address);  
         let _reserve = this.DAI.address; 
         let _collateral = this.TUSD.address; 
+
+        let collateralPrice = await this.priceOracle.getAssetPrice(_collateral);
+        let reservePrice = await this.priceOracle.getAssetPrice(_reserve);
 
         let reserveData = await this.lpContractProxy.getUserReserveData(_reserve,sender);  
         let borrowBalances =  await this.lpCoreContractProxy.getUserBorrowBalances(_reserve, sender); // 借款 
@@ -359,18 +352,28 @@ describe("AAVE Liquidation", function () {
         expect(borrowBalances[0].mul(new BN("25")).div(new BN("10000"))).to.be.bignumber.equal(originationFee);   
         // 验证产生的借出费用 
         expect(originationFee).to.be.bignumber.eq(reserveData.originationFee);    
+        expect(borrowBalances[1]).to.be.bignumber.eq(reserveData.currentBorrowBalance); //userCompoundedBorrowBalance
         // 借出产生的利息borrowBalances.borrowBalanceIncrease"
         expect(borrowBalances[2]).to.be.bignumber.eq(reserveData.currentBorrowBalance.sub(reserveData.principalBorrowBalance));   
 
+         //userCompoundedBorrowBalance// 最大清算 50%
+         let maxPrincipalAmountToLiquidate = reserveData.currentBorrowBalance.mul(new BN(50)).div(oneHundredBN);
+
+         let actualAmountToLiquidate = new BN(_purchaseAmount).gt(maxPrincipalAmountToLiquidate)
+             ?  maxPrincipalAmountToLiquidate
+             : _purchaseAmount;
+
+        if(new BN(_purchaseAmount).gt(maxPrincipalAmountToLiquidate)){
+            expect(actualAmountToLiquidate).to.be.bignumber.eq(maxPrincipalAmountToLiquidate,"(max 实际清算金额"); 
+        }else{
+            reservePrice.mul(_purchaseAmount)
+            expect(actualAmountToLiquidate).to.be.bignumber.eq(_purchaseAmount,"purchase 实际清算金额");   
+        }
+
+            //  console.log(maxPrincipalAmountToLiquidate.toString(), actualAmountToLiquidate.toString())
  
         //
         await this.lpLiquMangerContract.initialize(this.lpAddressProvider.address);
-
-        let userAccountData = await this.lpContractProxy.getUserAccountData(sender); 
-        // aaveMarket.userAccountData(sender,userAccountData,ethUSD)
-        // let totalCollateralETH = userAccountData.totalCollateralETH;
-        // let collateData = await this.lpContractProxy.getUserReserveData(_collateral,sender);  
-        // aaveMarket.userReserveData("TUSD",collateData,"6")
  
         let _userCollateralBalance =  await this.lpCoreContractProxy.getUserUnderlyingAssetBalance(
 			_collateral,
@@ -388,27 +391,29 @@ describe("AAVE Liquidation", function () {
             _reserve, //_reserve
             _purchaseAmount); // 根据 reserve 的数量 计算可赎回，包含了惩罚。
 
-        let collateralPrice = await this.priceOracle.getAssetPrice(_collateral);
-        let reservePrice = await this.priceOracle.getAssetPrice(_reserve);
+       
         let bonus =   await this.lpCoreContractProxy.getReserveLiquidationBonus(_collateral);  
+       
+            
+        // 传入的实际清算数量能 清算出的抵押物 ETH价值
         let _maxBorrowBalancesColl = reservePrice.mul(_purchaseAmount).div(collateralPrice).mul(bonus).div(oneHundredBN);
  
         expect(maxBorrowBalancesColl).to.be.bignumber.eq(_maxBorrowBalancesColl,"最大清算");    
 
         // 赎回大于用户抵押
         if(maxBorrowBalancesColl.gt(_userCollateralBalance)){
-            expect(avaiableCollateral.collateralAmount).to.be.bignumber.eq(_userCollateralBalance,"提取的抵押物");   
+            expect(avaiableCollateral.collateralAmount).to.be.bignumber.eq(_userCollateralBalance,"获得的抵押物数量");
+            
+            //  需要的抵押物数量 ETH 价格
             let _purchaseAmountNeed =  collateralPrice.mul(_userCollateralBalance).div(reservePrice).mul(oneHundredBN).div(bonus);
+
             expect(avaiableCollateral.principalAmountNeeded).to.be.bignumber.eq(_purchaseAmountNeed,"需要提供的资产");    
         }else{
-            expect(avaiableCollateral.collateralAmount).to.be.bignumber.eq(maxBorrowBalancesColl,"all 提取的抵押物" );    
+            expect(avaiableCollateral.collateralAmount).to.be.bignumber.eq(maxBorrowBalancesColl,"all 获得的抵押物数量" );    
             expect(avaiableCollateral.principalAmountNeeded).to.be.bignumber.eq(_purchaseAmount,"all 需要提供的资产");    
         } 
-        console.log("清算数量 借款数量 ",_purchaseAmount.div(ethDecimalBN).toString()) //
-        console.log("获得的抵押物数量 collateral 单位 " ,avaiableCollateral.collateralAmount.toString(), avaiableCollateral.collateralAmount.div(ethDecimalBN).toString())
-        console.log("需要付款的 reserve",avaiableCollateral.principalAmountNeeded.toString(),avaiableCollateral.principalAmountNeeded.div(ethDecimalBN).toString())
 
-
+        this.avaiableCollateral = avaiableCollateral; 
         // (
 			// 	vars.liquidatedCollateralForFee,
 			// 	vars.feeLiquidated
@@ -428,9 +433,8 @@ describe("AAVE Liquidation", function () {
         let _reserve = this.DAI.address; 
         let userAccountData = await this.lpContractProxy.getUserAccountData(sender) 
         let healthFactor =  userAccountData.healthFactor.div(ethDecimalBN).toNumber() 
-        console.log("健康系数:", healthFactor,userAccountData.healthFactor.toString()) 
-        // aaveMarket.userAccountData(sender,userAccountData,ethUSD)
-        // if(healthFactor>0) return ;
+        console.log("healthFactor:", healthFactor,userAccountData.healthFactor.toString())  
+        expect(healthFactor).to.be.eq(0,"健康度大于1");   
  
 
         let liquidDai = await this.DAI.balanceOf(liquid)
@@ -441,10 +445,13 @@ describe("AAVE Liquidation", function () {
         // console.log("Borrow aUSDC Before",borrowBal.toString())
         // console.log("liquid aUSDC Before",liquBal.toString()) 
 
-          
+        
         await this.DAI.approve(this.lpCoreAddr, _purchaseAmount.mul(new BN(10)),{from:liquid}) 
-      
- 
+        
+          //userCompoundedBorrowBalance// 最大清算 50% 
+        let reserveData = await this.lpContractProxy.getUserReserveData(_reserve,sender);  
+        let maxPrincipalAmountToLiquidate = reserveData.currentBorrowBalance.mul(new BN(50)).div(oneHundredBN);
+
         await this.lpContractProxy.liquidationCall(
             _collateral, //_collateral
             _reserve, //_reserve
@@ -453,26 +460,28 @@ describe("AAVE Liquidation", function () {
             true,
             {from:liquid}
         ); 
-        let _liquidDai = await this.DAI.balanceOf(liquid) 
 
-        expect(_purchaseAmount).to.be.bignumber.eq(liquidDai.sub(_liquidDai),"清算用户实际清算价值");    
-
+        console.log("----------liquidationCall-------------")
+        let _liquidDai = await this.DAI.balanceOf(liquid)  
        
-        // console.log("DAI Before - After %s, ETH Price %s, %s \n",liquidDai.sub(_liquidDai).toString(),liquidDai.sub(_liquidDai).div(ethDecimalBN).toString()) // 
+        if(new BN(_purchaseAmount).gt(maxPrincipalAmountToLiquidate)){ 
+            expect(maxPrincipalAmountToLiquidate).to.be.bignumber.eq(liquidDai.sub(_liquidDai),"全部 清算用户实际支出");   
+        }else{ 
+            expect(_purchaseAmount).to.be.bignumber.eq(liquidDai.sub(_liquidDai),"部分 清算用户实际支出");  
+        }
+ 
+        console.log("liquid DAI Before - After %s", liquidDai.sub(_liquidDai).div(ethDecimalBN).toString()) // 
  
         // 未计算费用
         let _borrowBal=await this.aUSDC.balanceOf(sender);
         let _liquBal=await this.aUSDC.balanceOf(liquid);
         expect(borrowBal).to.be.bignumber.eq(_borrowBal.add(_liquBal),"清算结果=清算人+被清算人");    
 
-        // console.log("borrow aUSDC After", _borrowBal.div(ethDecimalBN).toString())
-        // console.log("liquid aUSDC After",_liquBal.div(ethDecimalBN).toString());
-
-
-        //
+        console.log("borrow aUSDC ", _borrowBal.div(ethDecimalBN).toString())
+        console.log("liquid aUSDC ",_liquBal.div(ethDecimalBN).toString()); 
         userAccountData = await this.lpContractProxy.getUserAccountData(sender)  
         healthFactor =  userAccountData.healthFactor.div(ethDecimalBN).toString() 
-        console.log("健康系数:", healthFactor,userAccountData.healthFactor.toString())
+        console.log("healthFactor:", healthFactor,userAccountData.healthFactor.toString())
 
     }).timeout(500000);
  
