@@ -349,7 +349,7 @@ contract LendingPoolLiquidationManager is
 		address _collateral,
 		address _principal,
 		uint256 _purchaseAmount,
-		uint256 _userCollateralBalance
+		uint256 _userCollateralBalance // 全部清算， fee这个参数为0
 	)
 		public
 		view
@@ -370,8 +370,8 @@ contract LendingPoolLiquidationManager is
 		//this is the maximum possible amount of the selected collateral that can be liquidated, given the
 		//max amount of principal currency that is available for liquidation.
 		vars.maxAmountCollateralToLiquidate = vars
-			.principalCurrencyPrice // 借资产价格
-			.mul(_purchaseAmount)  // 借资产 数量
+			.principalCurrencyPrice // 借资产 价格
+			.mul(_purchaseAmount)  // 借资产 数量 ---- 产生ETH价值/抵押物价格= 抵押物数量
 			.div(vars.collateralPrice)
 			.mul(vars.liquidationBonus)
 			.div(100);
@@ -379,6 +379,8 @@ contract LendingPoolLiquidationManager is
 		// maxAmountCollateralToLiquidate = (reveserETH*amount) / collEHT）* 105%
 		// _userCollateralBalance = collatreal Atoken balance   #BUG  以太坊数量单位，资产数量单位
 		if (vars.maxAmountCollateralToLiquidate > _userCollateralBalance) {
+			// 注意 不包含 清算没有惩罚, 这种计算方式在fee的 计算过程中。
+			//   费清算情况，_userCollateralBalance =0,
 			collateralAmount = _userCollateralBalance;
 			principalAmountNeeded = vars
 				.collateralPrice
@@ -387,6 +389,7 @@ contract LendingPoolLiquidationManager is
 				.mul(100)
 				.div(vars.liquidationBonus);
 		} else {
+			// 包含惩罚
 			collateralAmount = vars.maxAmountCollateralToLiquidate;
 			principalAmountNeeded = _purchaseAmount;
 		}
