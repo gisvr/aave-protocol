@@ -468,6 +468,7 @@ contract LendingPool is ReentrancyGuard, VersionedInitializable {
 
         if (vars.rateMode == CoreLibrary.InterestRateMode.STABLE) {
             //check if the borrow mode is stable and if stable rate borrowing is enabled on this reserve
+            //check reserve is it collateral
             require(
                 core.isUserAllowedToBorrowAtStable(_reserve, msg.sender, _amount),
                 "User cannot borrow the selected amount with a stable rate"

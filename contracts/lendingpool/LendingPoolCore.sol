@@ -191,6 +191,7 @@ contract LendingPoolCore is VersionedInitializable {
             _user
         );
 
+        //更新 资产状态
         updateReserveStateOnBorrowInternal(
             _reserve,
             _user,
@@ -200,6 +201,7 @@ contract LendingPoolCore is VersionedInitializable {
             _rateMode
         );
 
+        //更新用户状态
         updateUserStateOnBorrowInternal(
             _reserve,
             _user,
@@ -209,6 +211,7 @@ contract LendingPoolCore is VersionedInitializable {
             _rateMode
         );
 
+        //更新利率状态
         updateReserveInterestRatesAndTimestampInternal(_reserve, 0, _amountBorrowed);
 
         return (getUserCurrentBorrowRate(_reserve, _user), balanceIncrease);
@@ -543,9 +546,9 @@ contract LendingPoolCore is VersionedInitializable {
         if (!reserve.isStableBorrowRateEnabled) return false;
 
         return
-            !user.useAsCollateral ||
-            !reserve.usageAsCollateralEnabled ||
-            _amount > getUserUnderlyingAssetBalance(_reserve, _user);
+            !user.useAsCollateral || // 用户设置抵押
+            !reserve.usageAsCollateralEnabled || // 系统是否可以抵押
+            _amount > getUserUnderlyingAssetBalance(_reserve, _user); // 借出存款> 用户存款
     }
 
     /**
@@ -1707,10 +1710,8 @@ contract LendingPoolCore is VersionedInitializable {
     ) internal {
         CoreLibrary.ReserveData storage reserve = reserves[_reserve];
         (uint256 newLiquidityRate, uint256 newStableRate, uint256 newVariableRate) = IReserveInterestRateStrategy(
-            reserve
-                .interestRateStrategyAddress
-        )
-            .calculateInterestRates(
+            reserve.interestRateStrategyAddress //利率策略地址
+        ).calculateInterestRates(
             _reserve,
             getReserveAvailableLiquidity(_reserve).add(_liquidityAdded).sub(_liquidityTaken),
             reserve.totalBorrowsStable,

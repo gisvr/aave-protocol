@@ -127,8 +127,7 @@ library CoreLibrary {
 					_self.currentVariableBorrowRate,
 					_self.lastUpdateTimestamp
 				);
-			_self
-				.lastVariableBorrowCumulativeIndex = cumulatedVariableBorrowInterest
+			_self.lastVariableBorrowCumulativeIndex = cumulatedVariableBorrowInterest
 				.rayMul(_self.lastVariableBorrowCumulativeIndex);
 		}
 	}
