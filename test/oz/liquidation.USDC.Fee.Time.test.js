@@ -223,7 +223,8 @@ describe("AAVE Liquidation Fee", function () {
     });
 
     it("alice,bob,sender depoist 1000 DAI, BAT, USDC", async () => {
-        this.timeout(50000) 
+        this.timeout(50000)
+        await time.advanceBlockTo('100');
         const allowAmount = web3.utils.toWei("2000", "ether")
         await this.DAI.approve(this.lpCoreAddr, allowAmount,{from:alice})
         await this.BAT.approve(this.lpCoreAddr, allowAmount,{from:bob})
@@ -289,14 +290,15 @@ describe("AAVE Liquidation Fee", function () {
         let borrowFee =await this.feeProvider.calculateLoanOriginationFee(sender, availableBorrowsETH);  
         let feeAmount = borrowFee.mul(ethDecimalBN).div(_priceEth);
 
-        expect(userReserveData.originationFee).to.be.bignumber.equal(feeAmount,"check fee");  
+        expect(userReserveData.originationFee).to.be.bignumber.equal(feeAmount);  
       
         // ---------------检查用户资产数据-------
         userAccountData = await this.lpContractProxy.getUserAccountData(sender); 
         // 借款额度
         expect(userAccountData.totalBorrowsETH).to.be.bignumber.equal(availableBorrowsETH); 
         // 检查费用
-        expect(userAccountData.totalFeesETH).to.be.bignumber.equal(borrowFee);    
+        expect(userAccountData.totalFeesETH).to.be.bignumber.equal(borrowFee);  
+        await time.advanceBlockTo('200');
  
 
     }).timeout(500000);
@@ -339,7 +341,8 @@ describe("AAVE Liquidation Fee", function () {
  
 
         // aaveMarket.userAccountData(sender,userAccountData,ethUSD)
-        // aaveMarket.userReserveData("USDC",userReserveData,"6") 
+        // aaveMarket.userReserveData("USDC",userReserveData,"6")
+        await time.advanceBlockTo('300');
 
     }).timeout(500000);
  
