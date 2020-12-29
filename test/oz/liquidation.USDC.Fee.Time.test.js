@@ -224,7 +224,7 @@ describe("AAVE Liquidation Fee", function () {
 
     it("alice,bob,sender depoist 1000 DAI, BAT, USDC", async () => {
         this.timeout(50000)
-        await time.advanceBlockTo('100');
+        // await time.advanceBlockTo('100');
         const allowAmount = web3.utils.toWei("2000", "ether")
         await this.DAI.approve(this.lpCoreAddr, allowAmount,{from:alice})
         await this.BAT.approve(this.lpCoreAddr, allowAmount,{from:bob})
@@ -260,8 +260,9 @@ describe("AAVE Liquidation Fee", function () {
  
     it("sender borrow DAI ", async () => {
         this.timeout(50000)
-        let _reserve = this.DAI.address; 
-        let _tokenBal =await this.DAI.balanceOf(sender); 
+        let _reserveToken = this.DAI
+        let _reserve = _reserveToken.address; 
+        let _tokenBal =await _reserveToken.balanceOf(sender); // 借款前的余额
       
         let userAccountData = await this.lpContractProxy.getUserAccountData(sender);  
         // aaveMarket.userAccountData(sender,userAccountData,ethUSD)
@@ -277,20 +278,24 @@ describe("AAVE Liquidation Fee", function () {
 
         // ---------------检查用户资产数据-------
         let userReserveData = await this.lpContractProxy.getUserReserveData(_reserve,sender);  
-        await timeTravel(2); 
+        await timeTravel(1); 
+        // await time.advanceBlockTo('110');
         // 检查 借贷数据是否正确
-        expect(borrowAmount).to.be.bignumber.equal(userReserveData.currentBorrowBalance);  
-        expect(borrowAmount).to.be.bignumber.equal(userReserveData.principalBorrowBalance);  
+        expect(borrowAmount).to.be.bignumber.equal(userReserveData.currentBorrowBalance,"当前借款额");  
+        expect(borrowAmount).to.be.bignumber.equal(userReserveData.principalBorrowBalance,"实际借款额");  
         // 检查 用户得到的Token
-        let tokenAmount =await this.DAI.balanceOf(sender); 
-        expect(borrowAmount).to.be.bignumber.equal(tokenAmount.sub(_tokenBal)); 
+        let tokenAmount =await _reserveToken.balanceOf(sender); 
+        expect(borrowAmount).to.be.bignumber.equal(tokenAmount.sub(_tokenBal),"验证收到的资产额=借款额"); 
         // 检查 利率模型
-        expect(userReserveData.borrowRateMode).to.be.bignumber.equal("2"); 
+        expect(userReserveData.borrowRateMode).to.be.bignumber.equal("2","检查利率模型"); 
         // 检查 借款费用
         let borrowFee =await this.feeProvider.calculateLoanOriginationFee(sender, availableBorrowsETH);  
         let feeAmount = borrowFee.mul(ethDecimalBN).div(_priceEth);
+        // await time.advanceBlockTo('160');
 
-        expect(userReserveData.originationFee).to.be.bignumber.equal(feeAmount);  
+        console.log("feeAmount",feeAmount.toString())
+        //1870312500000935156  // 1870312500000935000
+        expect(userReserveData.originationFee).to.be.bignumber.eq(feeAmount,"检查 借款费用");  
       
         // ---------------检查用户资产数据-------
         userAccountData = await this.lpContractProxy.getUserAccountData(sender); 
@@ -298,12 +303,12 @@ describe("AAVE Liquidation Fee", function () {
         expect(userAccountData.totalBorrowsETH).to.be.bignumber.equal(availableBorrowsETH); 
         // 检查费用
         expect(userAccountData.totalFeesETH).to.be.bignumber.equal(borrowFee);  
-        await time.advanceBlockTo('200');
+        // await time.advanceBlockTo('200');
  
 
     }).timeout(500000);
  
-    it("aave asset devaluation USDC", async () => { 
+    it.skip("aave asset devaluation USDC", async () => { 
         this.timeout(50000)
 
         let _collateral = this.USDC.address; 
@@ -342,12 +347,12 @@ describe("AAVE Liquidation Fee", function () {
 
         // aaveMarket.userAccountData(sender,userAccountData,ethUSD)
         // aaveMarket.userReserveData("USDC",userReserveData,"6")
-        await time.advanceBlockTo('300');
+        // await time.advanceBlockTo('300');
 
     }).timeout(500000);
  
  
-    it("sender calculate Available Collateral To Liquidate DAI", async () => {
+    it.skip("sender calculate Available Collateral To Liquidate DAI", async () => {
 
         await this.lpLiquMangerContract.initialize(this.lpAddressProvider.address);  
         let _reserve = this.DAI.address; 
@@ -432,7 +437,7 @@ describe("AAVE Liquidation Fee", function () {
     }).timeout(500000);
  
     
-    it("aave liquidation repay DAI, harvest USDC", async () => {
+    it.skip("aave liquidation repay DAI, harvest USDC", async () => {
         let _collateral= this.USDC.address
         let _reserve = this.DAI.address; 
         let userAccountData = await this.lpContractProxy.getUserAccountData(sender) 
