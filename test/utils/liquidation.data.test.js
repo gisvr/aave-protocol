@@ -1,22 +1,60 @@
 // let tokenTable = require("../../utils/readCsv")
  
 
-let liquidationData = require("../../config/liquidation.json");
+// let liquidationData = require("../../config/liquidation.json");
+
+const axios = require('axios');
+
+axios.get('https://protocol-api.aave.com/liquidations?get=proto')
+  .then(function (res) {
+    // console.log(res)
+    let liquidationData = res.data
+    let foo = liquidationData.data.filter(val=>val.reserve.decimals==18
+        && Number(val.currentBorrowsUSD) > 100
+        && val.reserve.symbol =="ETH")
+    // foo.map(val=>{ 
+    //     console.dir(val) 
+    // })
+
+    console.dir(foo[0]) 
+
+    foo[0].user.reservesData.map(val=>{
+        console.log(val.reserve.symbol,val.reserve.decimals,
+            val.reserve.usageAsCollateralEnabled,
+            val.reserve.reserveLiquidationBonus);
+        if(val.reserve.decimals != "18"){
+            console.dir(val)
+        }
+    })
+  })
+  .catch(function (error) {
+    console.log(error);
+  })
+  .then(function () {
+    // always executed
+  });  
  
-let foo = liquidationData.data.filter(val=>val.reserve.decimals==18
-    && Number(val.currentBorrowsUSD) > 500
-    && val.reserve.symbol =="ETH"
-    && val.reserve.symbol!="LEND"
-    // && val.reserve.symbol!="DAI"
-    && val.reserve.symbol!="BAT"
-    && val.reserve.symbol!="KNC" )
+// let foo = liquidationData.data.filter(val=>val.reserve.decimals==18
+//     && Number(val.currentBorrowsUSD) > 500
+//     && val.reserve.symbol =="ETH"
+//     && val.reserve.symbol!="LEND"
+//     // && val.reserve.symbol!="DAI"
+//     && val.reserve.symbol!="BAT"
+//     && val.reserve.symbol!="KNC" )
 
-//WBTC,USDT,USDC
-foo.map(val=>{
-    console.dir(val)
-})
+// //WBTC,USDT,USDC
+// foo.map(val=>{
+//     // if(val.reserve.decimals != "18"){
+//         console.dir(val)
+//     // }
+   
+// })
 
-console.dir(foo[0].user.reservesData)
+// foo[0].user.reservesData.map(val=>{
+//      if(val.reserve.decimals != "18"){
+//         console.dir(val)
+//     }
+// })
 
 // USDT UserReserveData---------------
 //     (0.0000)Decimal当前资产余额USDT currentATokenBalance 0

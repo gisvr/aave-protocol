@@ -40,6 +40,7 @@
     "@openzeppelin/test-environment": "^0.1.8",
     "@openzeppelin/test-helpers": "^0.5.9",
     "@truffle/contract": "^4.3.1",
+    "axios": "^0.21.1",
     "solidity-coverage": "^0.7.10"
   }
 }
