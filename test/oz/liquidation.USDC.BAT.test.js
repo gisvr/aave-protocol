@@ -65,8 +65,9 @@ let ltv ="75", liquidationThreshold = "85", liquidationBonus ="105";
 let ethUSD = "500";
 let usdETH = "0.002" //1美元对应的 ETH
 
-let _purchaseAmount = (new BN("179")).mul(ethDecimalBN); //374 临界值
+let _purchaseAmount = (new BN("300")).mul(ethDecimalBN); //374 临界值
 
+let discount =new BN(50);// 抵押 token 的 波动 %
 
 describe("AAVE Liquidation USDC BAT", function () {
     const [alice, bob, liquid] = accounts;
@@ -213,6 +214,9 @@ describe("AAVE Liquidation USDC BAT", function () {
         this.aDAI =  await AToken.at(_aDai);
         let _aUSDC =await this.lpCoreContractProxy.getReserveATokenAddress(this.USDC.address); 
         this.aUSDC =  await AToken.at(_aUSDC);
+
+        let _aBAT =await this.lpCoreContractProxy.getReserveATokenAddress(this.BAT.address); 
+        this.aBAT =  await AToken.at(_aBAT);
  
         let _fee = await provider.getFeeProvider();
 
@@ -233,7 +237,7 @@ describe("AAVE Liquidation USDC BAT", function () {
         await this.lpContractProxy.deposit(this.DAI.address, allowAmount, 0,{from:alice})
         await this.lpContractProxy.deposit(this.BAT.address, allowAmount, 0,{from:bob}) 
         await this.lpContractProxy.deposit(this.USDC.address, new BN(1000).mul(usdDecimalBN), 0 )
-        await this.lpContractProxy.deposit(this.BAT.address, new BN(1000).mul(usdDecimalBN), 0 )
+        await this.lpContractProxy.deposit(this.BAT.address, new BN(1000).mul(ethDecimalBN), 0 )
         
 
     }).timeout(500000);
@@ -270,8 +274,12 @@ describe("AAVE Liquidation USDC BAT", function () {
         // 将可借的 EHT转换成对应的资产
         let borrowAmount = availableBorrowsETH.mul(ethDecimalBN).div(_priceEth);
 
+        // let userReserveData = await this.lpContractProxy.getUserReserveData(this.BAT.address,sender);  
+
+        // console.log(userReserveData.originationFee.toString())
+
         console.log("borrow DAI",borrowAmount.div(ethDecimalBN).toString(),borrowAmount.toString(),)
- 
+  
         // 浮动率借款
         await this.lpContractProxy.borrow(_reserve, borrowAmount, 2, 0); 
 
@@ -287,12 +295,11 @@ describe("AAVE Liquidation USDC BAT", function () {
         // 检查 利率模型
         expect(userReserveData.borrowRateMode).to.be.bignumber.equal("2"); 
         // 检查 借款费用
-        let borrowFee =await this.feeProvider.calculateLoanOriginationFee(sender, availableBorrowsETH);  
-
+        let borrowFee =await this.feeProvider.calculateLoanOriginationFee(sender, availableBorrowsETH);   
+        // let feeAmount =  await this.lpCoreContractProxy.getUserOriginationFee(_reserve, sender);
         let feeAmount = borrowFee.mul(ethDecimalBN).div(_priceEth);
-
-        // #TODO
-        // expect(userReserveData.originationFee).to.be.bignumber.equal(feeAmount,"验证 originationFee");  
+ 
+        expect(userReserveData.originationFee).to.be.bignumber.equal(feeAmount,"验证 originationFee");  
       
         // ---------------检查用户资产数据-------
         userAccountData = await this.lpContractProxy.getUserAccountData(sender); 
@@ -304,16 +311,18 @@ describe("AAVE Liquidation USDC BAT", function () {
 
     }).timeout(500000);
  
-    it.skip("aave asset devaluation USDC", async () => { 
+    it("aave asset devaluation USDC BAT", async () => { 
         this.timeout(50000)
 
         let _collateral = this.USDC.address; 
+        let _batColl = this.BAT.address;
         let _priceEth = await this.priceOracle.getAssetPrice(_collateral);
         
         console.log("collateral USDC price", _priceEth.toString())
-        await  this.priceOracle.setAssetPrice(_collateral,_priceEth.mul(new BN(85)).div(new BN(100)));
+        await  this.priceOracle.setAssetPrice(_collateral,_priceEth.mul(discount).div(new BN(100)));
 
         let _newPriceEth =  await this.priceOracle.getAssetPrice(_collateral);
+        let _batPriceEth =  await this.priceOracle.getAssetPrice(_batColl);
         console.log("collateral USDC price setPrice %s, reduce price %s % ", _newPriceEth.toString(),_newPriceEth.mul(new BN(100)).div(_priceEth).toString())
 
         let afterUser = await this.lpDataProviderProxy.calculateUserGlobalData(sender)
@@ -337,8 +346,12 @@ describe("AAVE Liquidation USDC BAT", function () {
         let userCollateralBalance = await this.lpCoreContractProxy.getUserUnderlyingAssetBalance(_collateral, sender);  
         let userCollateralBalanceETH = userCollateralBalance.div(usdDecimalBN).mul(_newPriceEth); 
  
-        expect(userCollateralBalance).to.be.bignumber.eq(userReserveData.currentATokenBalance,"atoken余额");  
-        expect(userCollateralBalanceETH).to.be.bignumber.eq(userAccountData.totalCollateralETH,"用户总计：抵押资产"); 
+        expect(userCollateralBalance).to.be.bignumber.eq(userReserveData.currentATokenBalance,"AToken余额");  
+        
+        let batCollateralBalance = await this.lpCoreContractProxy.getUserUnderlyingAssetBalance(_batColl, sender);  
+        let batCollateralBalanceETH = batCollateralBalance.div(ethDecimalBN).mul(_batPriceEth); 
+
+        expect(userCollateralBalanceETH.add(batCollateralBalanceETH)).to.be.bignumber.eq(userAccountData.totalCollateralETH,"用户总计：抵押资产"); 
  
 
         // aaveMarket.userAccountData(sender,userAccountData,ethUSD)
@@ -347,7 +360,7 @@ describe("AAVE Liquidation USDC BAT", function () {
     }).timeout(500000);
  
  
-    it.skip("sender calculate Available Collateral To Liquidate DAI", async () => {
+    it("sender calculate Available Collateral To Liquidate DAI", async () => {
 
         await this.lpLiquMangerContract.initialize(this.lpAddressProvider.address);  
         let _reserve = this.DAI.address; 
@@ -432,7 +445,7 @@ describe("AAVE Liquidation USDC BAT", function () {
     }).timeout(500000);
  
     
-    it.skip("aave liquidation repay DAI, harvest USDC", async () => {
+    it("aave liquidation repay DAI, harvest USDC", async () => {
         let _collateral= this.USDC.address
         let _reserve = this.DAI.address; 
         let userAccountData = await this.lpContractProxy.getUserAccountData(sender) 
@@ -472,7 +485,7 @@ describe("AAVE Liquidation USDC BAT", function () {
 
 
  
-        console.log("liquid DAI Before - After %s", liquidDai.sub(_liquidDai).div(ethDecimalBN).toString()) //
+        console.log("liquid DAI Before - After %s", liquidDai.sub(_liquidDai).toString()) //
  
         // 未计算费用
         let _borrowBal=await this.aUSDC.balanceOf(sender); 
@@ -498,14 +511,67 @@ describe("AAVE Liquidation USDC BAT", function () {
         expect(borrowBal).to.be.bignumber.eq(_borrowBal.add(_liquBal).add(avaiableCollateral.collateralAmount),"清算结果=清算人+被清算人+fee");    
        
         userAccountData = await this.lpContractProxy.getUserAccountData(sender)  
-        healthFactor =  userAccountData.healthFactor.div(ethDecimalBN).toString() 
+        healthFactor =  userAccountData.healthFactor.div(ethDecimalBN).toNumber() 
         console.log("healthFactor:", healthFactor,userAccountData.healthFactor.toString())
 
         if(new BN(_purchaseAmount).gt(maxPrincipalAmountToLiquidate)){
             expect(maxPrincipalAmountToLiquidate).to.be.bignumber.eq(liquidDai.sub(_liquidDai),"全部 清算用户实际支出");
         }else{
-            expect(_purchaseAmount).to.be.bignumber.eq(liquidDai.sub(_liquidDai),"部分 清算用户实际支出");
+            // expect(_purchaseAmount).to.be.bignumber.eq(liquidDai.sub(_liquidDai),"部分 清算用户实际支出");
         }
+
+        expect(healthFactor).to.be.eq(0,"2健康度大于1");   
+        let _batColl = this.BAT.address;
+        await this.lpContractProxy.liquidationCall(
+            _batColl, //_collateral
+            _reserve, //_reserve
+            sender, //user
+            _purchaseAmount, // 
+            true,
+            {from:liquid}
+        ); 
+
+        console.log("----------liquidationCall 2-------------")
+        let _liquidDai2 = await this.DAI.balanceOf(liquid)
+
+         _borrowBal=await this.aBAT.balanceOf(sender); 
+         _liquBal=await this.aBAT.balanceOf(liquid); // 清算用户本来有的资产
+
+        console.log("liquid DAI Before - After %s", _liquidDai.sub(_liquidDai2).toString()) //
+        console.log("borrow aBAT ", _borrowBal.div(ethDecimalBN).toString(),_borrowBal.toString())
+        console.log("liquid aBAT ",_liquBal.div(ethDecimalBN).toString(),_liquBal.toString());
+
+        userAccountData = await this.lpContractProxy.getUserAccountData(sender)  
+        healthFactor =  userAccountData.healthFactor.div(ethDecimalBN).toNumber() 
+        console.log("healthFactor:", healthFactor,userAccountData.healthFactor.toString())
+
+
+        expect(healthFactor).to.be.eq(0,"3健康度大于1");   
+        await this.lpContractProxy.liquidationCall(
+            _batColl, //_collateral
+            _reserve, //_reserve
+            sender, //user
+            _purchaseAmount, // 
+            true,
+            {from:liquid}
+        ); 
+
+        
+        console.log("----------liquidationCall 3-------------")
+        let _liquidDai3 = await this.DAI.balanceOf(liquid)
+
+         _borrowBal=await this.aBAT.balanceOf(sender); 
+         _liquBal=await this.aBAT.balanceOf(liquid); // 清算用户本来有的资产
+
+        console.log("liquid DAI Before - After %s", _liquidDai2.sub(_liquidDai3).toString()) //
+        console.log("borrow aBAT ", _borrowBal.div(ethDecimalBN).toString(),_borrowBal.toString())
+        console.log("liquid aBAT ",_liquBal.div(ethDecimalBN).toString(),_liquBal.toString());
+
+        userAccountData = await this.lpContractProxy.getUserAccountData(sender)  
+        healthFactor =  userAccountData.healthFactor.div(ethDecimalBN).toString() 
+        console.log("healthFactor:", healthFactor,userAccountData.healthFactor.toString())
+
+
 
     }).timeout(500000);
  

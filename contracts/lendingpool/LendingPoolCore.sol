@@ -1342,7 +1342,7 @@ contract LendingPoolCore is VersionedInitializable {
         user.principalBorrowBalance = user.principalBorrowBalance.add(_amountBorrowed).add(
             _balanceIncrease
         );
-        user.originationFee = user.originationFee.add(_fee);
+        user.originationFee = user.originationFee.add(_fee);//Borrow 156
 
         //solium-disable-next-line
         user.lastUpdateTimestamp = uint40(block.timestamp);
@@ -1419,7 +1419,7 @@ contract LendingPoolCore is VersionedInitializable {
             user.stableBorrowRate = 0;
             user.lastVariableBorrowCumulativeIndex = 0;
         }
-        user.originationFee = user.originationFee.sub(_originationFeeRepaid);
+        user.originationFee = user.originationFee.sub(_originationFeeRepaid); //Repay
 
         //solium-disable-next-line
         user.lastUpdateTimestamp = uint40(block.timestamp);
@@ -1598,7 +1598,7 @@ contract LendingPoolCore is VersionedInitializable {
         }
 
         if(_feeLiquidated > 0){
-            user.originationFee = user.originationFee.sub(_feeLiquidated);
+            user.originationFee = user.originationFee.sub(_feeLiquidated);//Liquidation
         }
 
         //solium-disable-next-line
