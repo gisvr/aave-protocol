@@ -1,5 +1,5 @@
 
-let network = "ropsten" //ropsten mainnet
+let network = "mainnet" //ropsten mainnet
 let host = `https://${network}.infura.io/v3/393758f6317645be8a1ee94a874e12d9`;
 const {projectId,privateKeys, adminKey} = require('/Users/liyu/Desktop/key/secrets.json');
 let Web3 = require("web3")
@@ -26,7 +26,7 @@ let getArttifact = async (path,addr) =>{
     arttifact.defaults({
         from: "0xeA199722372dea9DF458dbb56be7721af117a9Bc",
         gas: 100e4, // mainnet= 1e6 //21,000
-        gasPrice: 160e9
+        gasPrice: 200e9
     });
     if(addr){
         if(network == "mainnet" &&  _art.contractName == "LendingPoolAddressesProvider"){

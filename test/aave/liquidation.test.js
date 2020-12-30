@@ -11,14 +11,24 @@ const axios = require('axios');
 let liquidData = async ()=>{
   let res =await  axios.get('https://protocol-api.aave.com/liquidations?get=proto')
   let liquidationData = res.data
-  let foo = liquidationData.data.filter(val=>val.reserve.decimals==18
-      && Number(val.currentBorrowsUSD) > 100
-      && val.reserve.symbol =="ETH") 
+//   let foo = liquidationData.data.filter(val=>val.reserve.decimals==18
+//       && Number(val.currentBorrowsUSD) > 10
+//       && val.reserve.symbol =="DAI") 
 
+ let foo = liquidationData.data
+
+  let maxReserve = foo[0];
+  foo.map(val=>{
+      if(Number(val.currentBorrowsUSD)>Number(maxReserve.currentBorrowsUSD) &&  val.reserve.decimals==18){
+        maxReserve = val;
+      } 
+  })
  
-  console.dir(foo[0]) 
+  console.dir(maxReserve) 
 
-  foo[0].user.reservesData.map(val=>{
+  console.log(foo.length,maxReserve.currentBorrowsUSD)
+
+  maxReserve.user.reservesData.map(val=>{
       console.log(val.reserve.symbol,val.reserve.decimals,
           val.reserve.usageAsCollateralEnabled,
           val.reserve.reserveLiquidationBonus);
@@ -26,7 +36,7 @@ let liquidData = async ()=>{
           console.dir(val)
     //   }
   })
-  return foo[0];
+  return maxReserve;
 }
 
 
@@ -44,28 +54,28 @@ describe("Aave Liquidation", function () {
 
     it('Borrow ETH', async () => {
         this.timeout(500000);
-        // let _liquidData =await liquidData();
-        // let _user = _liquidData.user.id;
-        // let _reserve = _liquidData.reserve.underlyingAsset;
-        // let _rDecimals = _liquidData.reserve.decimals
-        // let _rSymbol = _liquidData.reserve.decimals 
-        // let colls = _liquidData.user.reservesData.filter(val=>val.usageAsCollateralEnabledOnUser && val.reserve.usageAsCollateralEnabled);
+        let _liquidData =await liquidData();
+        let _user = _liquidData.user.id;
+        let _reserve = _liquidData.reserve.underlyingAsset;
+        let _rDecimals = _liquidData.reserve.decimals
+        let _rSymbol = _liquidData.reserve.decimals 
+        let colls = _liquidData.user.reservesData.filter(val=>val.usageAsCollateralEnabledOnUser && val.reserve.usageAsCollateralEnabled);
         
-        // let _collateral = colls[0].reserve.underlyingAsset
-        // let _decimals = colls[0].reserve.decimals
-        // let _symbol = colls[0].reserve.decimals 
+        let _collateral = colls[0].reserve.underlyingAsset
+        let _decimals = colls[0].reserve.decimals
+        let _symbol = colls[0].reserve.decimals 
 
         console.log("_reserve--------")
 
-        let _reserve  = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-        let _rDecimals = 18
-        let _rSymbol ="ETH"
+        // let _reserve  = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+        // let _rDecimals = 18
+        // let _rSymbol ="ETH"
 
-        let _collateral  = "0xa0E54Ab6AA5f0bf1D62EC3526436F3c05b3348A0";
-        let _decimals = 18
-        let _symbol = "WBTC"
+        // let _collateral  = "0xa0E54Ab6AA5f0bf1D62EC3526436F3c05b3348A0";
+        // let _decimals = 18
+        // let _symbol = "WBTC"
 
-        let _user = "0x9F7A946d935c8Efc7A8329C0d894A69bA241345A"
+        // let _user = "0x9F7A946d935c8Efc7A8329C0d894A69bA241345A"
 
         let userReserveData = await this.lpContractProxy.getUserReserveData(_reserve,_user);
         aaveMarket.userReserveData(_rSymbol,userReserveData,_rDecimals)
@@ -77,17 +87,17 @@ describe("Aave Liquidation", function () {
 
         aaveMarket.userAccountData(_user,userAccountData,"600")
 
-        console.log("Borrow--------")
-        let tx =   await this.lpContractProxy.borrow(_reserve, "22160161", 2, 0,{from:_user}); 
+        // console.log("Borrow--------")
+        // let tx =   await this.lpContractProxy.borrow(_reserve, "22160161", 2, 0,{from:_user}); 
 
-        console.log(tx.tx);
+        // console.log(tx.tx);
 
-        userAccountData = await this.lpContractProxy.getUserAccountData(_user);
-        aaveMarket.userAccountData(_user,userAccountData,"600")
+        // userAccountData = await this.lpContractProxy.getUserAccountData(_user);
+        // aaveMarket.userAccountData(_user,userAccountData,"600")
   
     }).timeout(50000);
 
-    it('Liquidation  repay ETH', async () => {
+    it.skip('Liquidation  repay ETH', async () => {
         let liquid = "0x2E9D15d024187477F85Ac7cD7154aD8556EDb8E2"
 
         let _reserve  = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";

@@ -65,7 +65,9 @@ let ltv ="75", liquidationThreshold = "85", liquidationBonus ="105";
 let ethUSD = "500";
 let usdETH = "0.002" //1美元对应的 ETH
 
-let _purchaseAmount = (new BN("1079")).mul(ethDecimalBN); //374 临界值
+let _receiveAToken = false;
+
+let _purchaseAmount = (new BN("179")).mul(ethDecimalBN); //374 临界值
 
 
 describe("AAVE Liquidation repay DAI havest TUSD", function () {
@@ -429,6 +431,7 @@ describe("AAVE Liquidation repay DAI havest TUSD", function () {
  
     
     it("aave liquidation repay DAI harvest TUSD", async () => {
+        this.timeout(500000)
         let _collateral= this.TUSD.address
         let _reserve = this.DAI.address; 
         let userAccountData = await this.lpContractProxy.getUserAccountData(sender) 
@@ -440,8 +443,12 @@ describe("AAVE Liquidation repay DAI havest TUSD", function () {
         let liquidDai = await this.DAI.balanceOf(liquid)
         // console.log("DAI Before", liquidDai.toString())
 
-        let borrowBal=await this.aTUSD.balanceOf(sender);
+        let borrowBal=await this.aTUSD.balanceOf(sender); 
         let liquBal=await this.aTUSD.balanceOf(liquid); 
+
+        if(!_receiveAToken){  
+            liquBal=await this.TUSD.balanceOf(liquid); 
+        }
         // console.log("Borrow aTUSD Before",borrowBal.toString())
         // console.log("liquid aTUSD Before",liquBal.toString()) 
 
@@ -472,7 +479,7 @@ describe("AAVE Liquidation repay DAI havest TUSD", function () {
             _reserve, //_reserve
             sender, //user
             _purchaseAmount, // 
-            true,
+            _receiveAToken,
             {from:liquid}
         ); 
 
@@ -499,6 +506,14 @@ describe("AAVE Liquidation repay DAI havest TUSD", function () {
         // 未计算费用
         let _borrowBal=await this.aTUSD.balanceOf(sender); 
         let _liquBal=await this.aTUSD.balanceOf(liquid); // 清算用户本来有的资产
+
+        if(!_receiveAToken){ 
+            _liquBal=await this.TUSD.balanceOf(liquid); // 清算用户本来有的资产 
+           if(liquBal.gt(new BN(0))){ 
+              _liquBal = _liquBal.sub(liquBal);
+           }  
+         }
+
         
 
         let _fee=  reserveData.originationFee
@@ -510,6 +525,9 @@ describe("AAVE Liquidation repay DAI havest TUSD", function () {
             _fee, // 需要清算的额度 付出的 reserve 单位 .getUserBorrowBalances(_reserve, _user);
             this.userCollateralBalance // 用户抵押物- 被清算抵押物 
         );
+
+       
+
 
 
 
