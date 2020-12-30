@@ -1,141 +1,121 @@
-
-
+ 
 const {expect} = require("chai");
 const AaveMarket = require("../../utils/aave");
-let nodeProvider = require("../../utils/ganache.provider");
+let nodeProvider = require("../../utils/infura.provider");
 let web3 = nodeProvider.getWeb3();
 let aaveMarket = new  AaveMarket(web3);
+const axios = require('axios');
 
+
+
+let liquidData = async ()=>{
+  let res =await  axios.get('https://protocol-api.aave.com/liquidations?get=proto')
+  let liquidationData = res.data
+  let foo = liquidationData.data.filter(val=>val.reserve.decimals==18
+      && Number(val.currentBorrowsUSD) > 100
+      && val.reserve.symbol =="ETH") 
+
+ 
+  console.dir(foo[0]) 
+
+  foo[0].user.reservesData.map(val=>{
+      console.log(val.reserve.symbol,val.reserve.decimals,
+          val.reserve.usageAsCollateralEnabled,
+          val.reserve.reserveLiquidationBonus);
+    //   if(val.reserve.decimals != "18"){
+          console.dir(val)
+    //   }
+  })
+  return foo[0];
+}
 
 
 let users=[],BN=web3.utils.BN
-describe("Aave Liquidation", function () {
-    let alice, bob, liquid;
-    before(async () => {
-        this.DAI = await nodeProvider.getAave("MockDAI");
-        this.USDC = await nodeProvider.getAave("MockUSDC");
-        this.USDT = await nodeProvider.getAave("MockUSDT");
-        let provider = await nodeProvider.getAave("LendingPoolAddressesProvider"); //?
-
+ 
+describe("Aave Liquidation", function () { 
+    before(async () => { 
+        let provider = await nodeProvider.getAave("LendingPoolAddressesProvider","AAVE"); 
         let lpAddr = await provider.getLendingPool()
-        this.lpContract = await nodeProvider.getAave("LendingPool", lpAddr);
-
-        this.lpCore = await provider.getLendingPoolCore()
-        this.lpCoreContract = await nodeProvider.getAave("LendingPoolCore", this.lpCore);
-
-        this.lpDataPrivider = await provider.getLendingPoolDataProvider();
-        this.lpDataPrividerContract = await nodeProvider.getAave("LendingPoolDataProvider", this.lpDataPrivider );
-
-        this.lpAddressProvider = provider
-
-        let _aDaiAddr = await this.lpCoreContract.getReserveATokenAddress(this.DAI.address)
-        this.aDAI = await nodeProvider.getMint("AToken", _aDaiAddr);
-
-        this.priceOracle = await nodeProvider.getMint("PriceOracle")
-
-        users = await web3.eth.getAccounts();
-        // users = nodeProvider.getAccounts();
-        [alice, bob, liquid] = users;
+        // console.log(lpAddr)
+        // let lpAddr = "0x398eC7346DcD622eDc5ae82352F02bE94C62d119"
+        this.lpContractProxy = await nodeProvider.getAave("LendingPool", lpAddr);
+        // console.log(this.lpContract.address)
     });
 
-    it('Liquidation', async () => {
+    it('Borrow ETH', async () => {
         this.timeout(500000);
-        let _reserve = this.USDT.address;
-        let _user= alice;
-        console.log(this.lpDataPrividerContract.address)
-        let foo = await this.lpDataPrividerContract.calculateUserGlobalData(_user);
+        // let _liquidData =await liquidData();
+        // let _user = _liquidData.user.id;
+        // let _reserve = _liquidData.reserve.underlyingAsset;
+        // let _rDecimals = _liquidData.reserve.decimals
+        // let _rSymbol = _liquidData.reserve.decimals 
+        // let colls = _liquidData.user.reservesData.filter(val=>val.usageAsCollateralEnabledOnUser && val.reserve.usageAsCollateralEnabled);
+        
+        // let _collateral = colls[0].reserve.underlyingAsset
+        // let _decimals = colls[0].reserve.decimals
+        // let _symbol = colls[0].reserve.decimals 
 
-         aaveMarket.calculateUserGlobalData(_user,foo,"300");
+        console.log("_reserve--------")
 
-        let _collateral = this.DAI.address;
-        let userCollateralBalance = await this.lpCoreContract.getUserUnderlyingAssetBalance(_collateral, _user);
-        let isReserveUsageAsCollateralEnabled = await  this.lpCoreContract.isReserveUsageAsCollateralEnabled(_collateral)
-        let isUserUseReserveAsCollateralEnabled = await this.lpCoreContract.isUserUseReserveAsCollateralEnabled(_collateral, _user);
+        let _reserve  = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+        let _rDecimals = 18
+        let _rSymbol ="ETH"
 
-        // eth 有这个问题 可能
-        let originationFee =  await this.lpCoreContract.getUserOriginationFee(_reserve, _user);
+        let _collateral  = "0xa0E54Ab6AA5f0bf1D62EC3526436F3c05b3348A0";
+        let _decimals = 18
+        let _symbol = "WBTC"
 
-        console.log("originationFee",originationFee.toString())
+        let _user = "0x9F7A946d935c8Efc7A8329C0d894A69bA241345A"
 
-        console.log(userCollateralBalance.div(new BN(10).pow(new BN(18))).toString(),
-            isReserveUsageAsCollateralEnabled,
-            isUserUseReserveAsCollateralEnabled)
+        let userReserveData = await this.lpContractProxy.getUserReserveData(_reserve,_user);
+        aaveMarket.userReserveData(_rSymbol,userReserveData,_rDecimals)
 
-        let userBorrowBalances = await this.lpCoreContract.getUserBorrowBalances(_reserve, _user);
-        let userCompoundedBorrowBalance =  userBorrowBalances[1];
-        let borrowBalanceIncrease = userBorrowBalances[2];
+        let userCollateralData = await this.lpContractProxy.getUserReserveData(_collateral,_user);
+        let userAccountData = await this.lpContractProxy.getUserAccountData(_user);
+        console.log("_collateral--------")
+        aaveMarket.userReserveData(_symbol,userCollateralData,_decimals)
 
-        // maxPrincipalAmountToLiquidate
-        let _actualAmountToLiquidate = userCompoundedBorrowBalance//  userCompoundedBorrowBalance.mul(new BN(50)).div(new BN(100));
-        console.debug("userCompoundedBorrowBalance",_actualAmountToLiquidate.toString(),"borrowBalanceIncrease", borrowBalanceIncrease.toString());
+        aaveMarket.userAccountData(_user,userAccountData,"600")
 
-        // _purchaseAmount > vars.maxPrincipalAmountToLiquidate
-        //     ? vars.maxPrincipalAmountToLiquidate
-        //     : _purchaseAmount;
+        console.log("Borrow--------")
+        let tx =   await this.lpContractProxy.borrow(_reserve, "22160161", 2, 0,{from:_user}); 
 
+        console.log(tx.tx);
 
+        userAccountData = await this.lpContractProxy.getUserAccountData(_user);
+        aaveMarket.userAccountData(_user,userAccountData,"600")
+  
+    }).timeout(50000);
 
-        let core = this.lpCoreContract;
-        let oracle = this.priceOracle
-        async function calculateAvailableCollateralToLiquidate( _collateral,
-                                                                _principal,
-                                                                _purchaseAmount,
-                                                                _userCollateralBalance) {
+    it('Liquidation  repay ETH', async () => {
+        let liquid = "0x2E9D15d024187477F85Ac7cD7154aD8556EDb8E2"
 
-            let collateralAmount = 0;
-            let principalAmountNeeded = 0;
+        let _reserve  = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+        let _user = "0x9F7A946d935c8Efc7A8329C0d894A69bA241345A"
+        let _purchaseAmount = "22160161"
 
-
-            let bonus =   await core.getReserveLiquidationBonus(_principal);
-            console.log(bonus.toString())
-            let collateralPrice = await oracle.getAssetPrice(_collateral);
-
-            await oracle.setAssetPrice(_principal,collateralPrice);
-            let principalCurrencyPrice = await oracle.getAssetPrice(_principal);
-
-
-            console.log(collateralPrice.toString(),principalCurrencyPrice.toString())
-
-            let maxAmountCollateralToLiquidate = principalCurrencyPrice
-                .mul(_purchaseAmount)
-                .div(collateralPrice)
-                .mul(bonus)
-                .div(new BN(100));
-
-            console.log("maxAmountCollateralToLiquidate",maxAmountCollateralToLiquidate.toString())
-
-            console.log("_userCollateralBalance",_userCollateralBalance.toString())
-
-            if (maxAmountCollateralToLiquidate.gt(_userCollateralBalance)) {
-                collateralAmount = _userCollateralBalance;
-                principalAmountNeeded =  collateralPrice
-                    .mul(collateralAmount)
-                    .div(principalCurrencyPrice)
-                    .mul(100)
-                    .div(vars.liquidationBonus);
-            }else {
-                collateralAmount =  maxAmountCollateralToLiquidate;
-                principalAmountNeeded = _purchaseAmount;
-            }
+        let _collateral  = "0xa0E54Ab6AA5f0bf1D62EC3526436F3c05b3348A0";
+        let _decimals = 18
+        let _symbol = "WBTC"
 
 
-
-            console.log("collateralAmount",collateralAmount.toString());
-
-            console.log("principalAmountNeeded",principalAmountNeeded.toString());
-
-            return (collateralAmount, principalAmountNeeded);
+        let userAccountData = await this.lpContractProxy.getUserAccountData(_user)  
+        let healthFactor =  userAccountData.healthFactor.toString()
+        console.log("healthFactor:", healthFactor,userAccountData.healthFactor.toString())
 
 
-        }
+        // expect(healthFactor).to.be.eq(0,"3健康度大于1");   
+        let tx =  await this.lpContractProxy.liquidationCall(
+            _collateral, //_collateral
+            _reserve, //_reserve
+            _user, //user
+            _purchaseAmount, // 
+            true,
+            {from:liquid}
+        ); 
 
-        calculateAvailableCollateralToLiquidate(
-            _collateral,
-            _reserve,
-            _actualAmountToLiquidate,
-            userCollateralBalance
-        );
-        // (uint256 maxCollateralToLiquidate, uint256 principalAmountNeeded) =
+        console.log(tx.tx);
+ 
 
     }).timeout(50000);
 

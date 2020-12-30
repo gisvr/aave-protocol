@@ -1,6 +1,7 @@
 
-let network = "mainnet" //ropsten mainnet
+let network = "ropsten" //ropsten mainnet
 let host = `https://${network}.infura.io/v3/393758f6317645be8a1ee94a874e12d9`;
+const {projectId,privateKeys, adminKey} = require('/Users/liyu/Desktop/key/secrets.json');
 let Web3 = require("web3")
 const web3 = new Web3(host)
 let contract = require("@truffle/contract");
@@ -9,7 +10,13 @@ let accounts = []
 let getArttifact = async (path,addr) =>{
     let _chainId = await web3.eth.getChainId();
     if(accounts.length == 0){
-        accounts = await web3.eth.getAccounts();
+        // accounts = await web3.eth.getAccounts();
+
+        privateKeys.map(val => {
+            let account = web3.eth.accounts.wallet.add(val)
+            accounts.push(account.address)
+        })
+
     } 
      
     let _art = require(path);
@@ -18,8 +25,8 @@ let getArttifact = async (path,addr) =>{
     arttifact.setWallet(web3.eth.accounts.wallet);
     arttifact.defaults({
         from: "0xeA199722372dea9DF458dbb56be7721af117a9Bc",
-        // gas: 125e6, // mainnet= 1e6
-        // gasPrice: 200e9
+        gas: 100e4, // mainnet= 1e6 //21,000
+        gasPrice: 160e9
     });
     if(addr){
         if(network == "mainnet" &&  _art.contractName == "LendingPoolAddressesProvider"){
