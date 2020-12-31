@@ -6,7 +6,7 @@ import "./MintableERC20.sol";
 
 contract MockWBTC is MintableERC20 {
 
-    uint256 public decimals = 18;
+    uint256 public decimals = 8;
     string public symbol = "WBTC";
     string public name = "WBTC Coin";
 }

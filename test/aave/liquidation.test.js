@@ -54,38 +54,49 @@ describe("Aave Liquidation", function () {
 
     it('Borrow ETH', async () => {
         this.timeout(500000);
-        let _liquidData =await liquidData();
-        let _user = _liquidData.user.id;
-        let _reserve = _liquidData.reserve.underlyingAsset;
-        let _rDecimals = _liquidData.reserve.decimals
-        let _rSymbol = _liquidData.reserve.decimals 
-        let colls = _liquidData.user.reservesData.filter(val=>val.usageAsCollateralEnabledOnUser && val.reserve.usageAsCollateralEnabled);
+        // let _liquidData =await liquidData();
+        // let _user = _liquidData.user.id;
+        // let _reserve = _liquidData.reserve.underlyingAsset;
+        // let _rDecimals = _liquidData.reserve.decimals
+        // let _rSymbol = _liquidData.reserve.decimals 
+        // let colls = _liquidData.user.reservesData.filter(val=>val.usageAsCollateralEnabledOnUser && val.reserve.usageAsCollateralEnabled);
         
-        let _collateral = colls[0].reserve.underlyingAsset
-        let _decimals = colls[0].reserve.decimals
-        let _symbol = colls[0].reserve.decimals 
+        // let _collateral = colls[0].reserve.underlyingAsset
+        // let _decimals = colls[0].reserve.decimals
+        // let _symbol = colls[0].reserve.decimals 
 
         console.log("_reserve--------")
 
-        // let _reserve  = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-        // let _rDecimals = 18
-        // let _rSymbol ="ETH"
+        let _reserve  = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+        let _rDecimals = 18
+        let _rSymbol ="ETH"
 
-        // let _collateral  = "0xa0E54Ab6AA5f0bf1D62EC3526436F3c05b3348A0";
-        // let _decimals = 18
-        // let _symbol = "WBTC"
+        let _collateral  = "0xa0E54Ab6AA5f0bf1D62EC3526436F3c05b3348A0";
+        let _decimals = 18
+        let _symbol = "WBTC"
 
-        // let _user = "0x9F7A946d935c8Efc7A8329C0d894A69bA241345A"
+        let _user = "0x9F7A946d935c8Efc7A8329C0d894A69bA241345A"
+
+       let storage = await web3.eth.getStorageAt("0x3589d05a1ec4Af9f65b0E5554e645707775Ee43C", 1) ;
+
+       console.log(storage);
+       let foo = web3.utils.hexToAscii(storage)
+
+       
+       console.log(foo)
+
+       return;
+          
 
         let userReserveData = await this.lpContractProxy.getUserReserveData(_reserve,_user);
-        aaveMarket.userReserveData(_rSymbol,userReserveData,_rDecimals)
+        // aaveMarket.userReserveData(_rSymbol,userReserveData,_rDecimals)
 
         let userCollateralData = await this.lpContractProxy.getUserReserveData(_collateral,_user);
         let userAccountData = await this.lpContractProxy.getUserAccountData(_user);
         console.log("_collateral--------")
-        aaveMarket.userReserveData(_symbol,userCollateralData,_decimals)
+        // aaveMarket.userReserveData(_symbol,userCollateralData,_decimals)
 
-        aaveMarket.userAccountData(_user,userAccountData,"600")
+        // aaveMarket.userAccountData(_user,userAccountData,"600")
 
         // console.log("Borrow--------")
         // let tx =   await this.lpContractProxy.borrow(_reserve, "22160161", 2, 0,{from:_user}); 

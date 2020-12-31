@@ -66,7 +66,7 @@ let ltv ="75", liquidationThreshold = "85", liquidationBonus ="105";
 let ethUSD = "500";
 let usdETH = "0.002" //1美元对应的 ETH
 
-let _purchaseAmount = (new BN("179")).mul(ethDecimalBN); //374 临界值
+let _purchaseAmount = (new BN("179")).mul(usdDecimalBN); //374 临界值
 
 
 describe("AAVE Liquidation Fee", function () {
@@ -235,7 +235,7 @@ describe("AAVE Liquidation Fee", function () {
         await this.lpContractProxy.deposit(this.DAI.address, allowAmount, 0,{from:alice})
         await this.lpContractProxy.deposit(this.BAT.address, allowAmount, 0,{from:bob}) 
         await this.lpContractProxy.deposit(this.USDC.address, new BN(1000).mul(usdDecimalBN), 0 )
-        await this.lpContractProxy.deposit(this.BAT.address, new BN(1000).mul(usdDecimalBN), 0 )
+        // await this.lpContractProxy.deposit(this.BAT.address, new BN(1000).mul(usdDecimalBN), 0 )
         
 
     }).timeout(500000);
@@ -308,7 +308,7 @@ describe("AAVE Liquidation Fee", function () {
 
     }).timeout(500000);
  
-    it.skip("aave asset devaluation USDC", async () => { 
+    it("aave asset devaluation USDC", async () => { 
         this.timeout(50000)
 
         let _collateral = this.USDC.address; 
@@ -352,7 +352,7 @@ describe("AAVE Liquidation Fee", function () {
     }).timeout(500000);
  
  
-    it.skip("sender calculate Available Collateral To Liquidate DAI", async () => {
+    it("sender calculate Available Collateral To Liquidate DAI", async () => {
 
         await this.lpLiquMangerContract.initialize(this.lpAddressProvider.address);  
         let _reserve = this.DAI.address; 
@@ -437,7 +437,7 @@ describe("AAVE Liquidation Fee", function () {
     }).timeout(500000);
  
     
-    it.skip("aave liquidation repay DAI, harvest USDC", async () => {
+    it("aave liquidation repay DAI, harvest USDC", async () => {
         let _collateral= this.USDC.address
         let _reserve = this.DAI.address; 
         let userAccountData = await this.lpContractProxy.getUserAccountData(sender) 

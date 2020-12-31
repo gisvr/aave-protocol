@@ -6,7 +6,7 @@ let web3 = nodeProvider.getWeb3();
 let aaveMarket = new  AaveMarket(web3);
 const axios = require('axios');
  
-let liquidData = async ()=>{
+let liquidData_bak = async ()=>{
   let res =await  axios.get('https://protocol-api.aave.com/liquidations?get=proto')
   let liquidationData = res.data
   let foo = liquidationData.data.filter(val=>val.reserve.decimals==18
@@ -27,8 +27,42 @@ let liquidData = async ()=>{
   return foo[0];
 }
 
+let liquidData = async ()=>{
+    let res =await  axios.get('https://protocol-api.aave.com/liquidations?get=proto')
+    let foo = res.data.data 
+    let maxReserve = foo[0];
+    foo.map(val=>{
+        if(Number(val.currentBorrowsUSD)>Number(maxReserve.currentBorrowsUSD) 
+        &&  val.reserve.decimals==18 && val.reserve.symbol == "DAI"){
 
-let users=[],BN=web3.utils.BN
+          let _ll = val.user.reservesData.filter(res=>res.reserve.decimals == 18)
+          if(_ll.length>0){
+            maxReserve = val;
+          } 
+        } 
+    })
+
+    // console.dir(maxReserve)  
+    console.log("maxReserve, %d 清算数量, %s  USD借出资产 %s",foo.length,maxReserve.currentBorrowsUSD,maxReserve.reserve.symbol)
+  
+    let collateralIndex =0 
+    maxReserve.user.reservesData.map((val,index)=>{
+        if(val.currentUnderlyingBalanceUSD == "0") return
+        console.log("symbol %s, %d 位 %s USD 抵押余额 %s 是否抵押物，%s 奖励",
+            val.reserve.symbol,val.reserve.decimals,
+            val.currentUnderlyingBalanceUSD,
+            val.reserve.usageAsCollateralEnabled, 
+            val.reserve.reserveLiquidationBonus);
+         if(val.reserve.decimals == 18){
+            console.dir(val)
+            collateralIndex = index
+         }
+    })
+    return {maxReserve,collateralIndex};
+  }
+
+
+let BN=web3.utils.BN
  
 describe("Aave Liquidation", function () {
     let alice, bob, liquid;
@@ -43,28 +77,32 @@ describe("Aave Liquidation", function () {
 
     it('Liquidation Info', async () => {
         this.timeout(500000);
-        let _liquidData =await liquidData();
+        let {maxReserve,collateralIndex} =await liquidData();
+        let _liquidData = maxReserve
         let _user = _liquidData.user.id;
         this.user = _user
         
         let _reserve = _liquidData.reserve.underlyingAsset;
-        this.reserve = _reserve
-
         let _rDecimals = _liquidData.reserve.decimals
-        let _rSymbol = _liquidData.reserve.decimals 
-        let colls = _liquidData.user.reservesData.filter(val=>val.usageAsCollateralEnabledOnUser && val.reserve.usageAsCollateralEnabled);
+        let _rSymbol = _liquidData.reserve.symbol 
+        this.reserve = _reserve
+        this.reserveSymbol = _rSymbol
+ 
+        let colls = _liquidData.user.reservesData[collateralIndex];
         
-        let _collateral = colls[0].reserve.underlyingAsset
-        let _decimals = colls[0].reserve.decimals
-        let _symbol = colls[0].reserve.decimals 
+        let _collateral = colls.reserve.underlyingAsset
+        let _decimals = colls.reserve.decimals
+        let _symbol = colls.reserve.symbol 
 
         this.collateral = _collateral
+        this.collateralSymbol = _symbol
 
         console.log("_reserve--------")
         let userReserveData = await this.lpContractProxy.getUserReserveData(_reserve,_user);
         aaveMarket.userReserveData(_rSymbol,userReserveData,_rDecimals)
 
-        this.purchaseAmount  = userReserveData.currentBorrowBalance.add(new BN(1e16.toString()))
+        //userReserveData.currentBorrowBalance.add(
+        this.purchaseAmount  = new BN(1e18.toString())
 
 
         let userCollateralData = await this.lpContractProxy.getUserReserveData(_collateral,_user);
@@ -78,10 +116,10 @@ describe("Aave Liquidation", function () {
 
     }).timeout(50000);
 
-    it.skip('Liquidation  repay ETH', async () => {
+    it('Liquidation  repay DAI', async () => {
         let liquid = "0xeA199722372dea9DF458dbb56be7721af117a9Bc"   
-        console.log("collateral",this.collateral )
-        console.log("reserve",this.reserve )
+        console.log("collateral",this.collateral, this.collateralSymbol )
+        console.log("reserve",this.reserve,this.reserveSymbol )
         console.log("user",this.user)
         console.log("purchaseAmount",this.purchaseAmount.toString() )
         console.log("liquid",liquid)
@@ -107,10 +145,7 @@ describe("Aave Liquidation", function () {
             // ); 
             //  console.log(tx.tx);
  
-        }
-
- 
-       
+        } 
 
     }).timeout(50000);
 

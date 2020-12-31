@@ -8,3 +8,4 @@ const {
 let foo = new BN(10).gt(new BN(11))
 
 console.log(foo)
+
