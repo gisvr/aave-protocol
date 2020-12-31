@@ -427,6 +427,7 @@ describe("AAVE Liquidation USDC BAT", function () {
 
         // 赎回大于用户抵押
         if(maxBorrowBalancesColl.gt(_userCollateralBalance)){
+            //
             expect(avaiableCollateral.collateralAmount).to.be.bignumber.eq(_userCollateralBalance,"获得的抵押物数量");
             
             //  需要的抵押物数量 ETH 价格

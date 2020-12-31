@@ -525,13 +525,6 @@ describe("AAVE Liquidation repay DAI havest TUSD", function () {
             _fee, // 需要清算的额度 付出的 reserve 单位 .getUserBorrowBalances(_reserve, _user);
             this.userCollateralBalance // 用户抵押物- 被清算抵押物 
         );
-
-       
-
-
-
-
-
  
         console.log("fee aTUSD %s,  %s",avaiableCollateral.collateralAmount.div(ethDecimalBN).toString(), avaiableCollateral.collateralAmount.toString());  
         console.log("borrow aTUSD ", _borrowBal.div(ethDecimalBN).toString(),_borrowBal.toString())

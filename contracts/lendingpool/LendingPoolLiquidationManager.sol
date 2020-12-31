@@ -326,13 +326,15 @@ contract LendingPoolLiquidationManager is
 		return (uint256(LiquidationErrors.NO_ERROR), "No errors");
 	}
 
-	struct AvailableCollateralToLiquidateLocalVars {
-		uint256 userCompoundedBorrowBalance;
-		uint256 liquidationBonus;
-		uint256 collateralPrice;
-		uint256 principalCurrencyPrice;
-		uint256 maxAmountCollateralToLiquidate;
-	}
+    struct AvailableCollateralToLiquidateLocalVars {
+        uint256 userCompoundedBorrowBalance;
+        uint256 liquidationBonus;
+        uint256 collateralPrice;
+        uint256 principalCurrencyPrice;
+        uint256 maxAmountCollateralToLiquidate;
+        uint256 principalDecimals;
+        uint256 collateralDecimals;
+    }
 
 	/**
 	 * @dev calculates how much of a specific collateral can be liquidated, given
