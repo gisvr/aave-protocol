@@ -380,7 +380,8 @@ contract LendingPoolLiquidationManager is
 			.div(100);
 
 		// maxAmountCollateralToLiquidate = (reveserETH*amount) / collEHT）* 105%
-		// _userCollateralBalance = collatreal Atoken balance   #BUG  以太坊数量单位，资产数量单位
+		// _userCollateralBalance = collatreal Atoken balance   
+		// fix 增加 资产单位
 		if (vars.maxAmountCollateralToLiquidate > _userCollateralBalance) {
 			// 注意 不包含 清算没有惩罚, 这种计算方式在fee的 计算过程中。
 			//   费清算情况，_userCollateralBalance =0,
@@ -388,7 +389,7 @@ contract LendingPoolLiquidationManager is
 			principalAmountNeeded = vars
 				.collateralPrice
 				.mul(collateralAmount)
-				.mul(10 ** vars.principalDecimals)
+				.mul(10 ** vars.principalDecimals) 
                 .div(vars.principalCurrencyPrice.mul(10 ** vars.collateralDecimals))
 				.mul(100)
 				.div(vars.liquidationBonus);
