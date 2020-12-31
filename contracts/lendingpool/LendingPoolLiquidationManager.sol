@@ -366,13 +366,16 @@ contract LendingPoolLiquidationManager is
 		vars.collateralPrice = oracle.getAssetPrice(_collateral);
 		vars.principalCurrencyPrice = oracle.getAssetPrice(_principal);
 		vars.liquidationBonus = core.getReserveLiquidationBonus(_collateral);
+		vars.principalDecimals = core.getReserveDecimals(_principal);
+        vars.collateralDecimals = core.getReserveDecimals(_collateral);
 
 		//this is the maximum possible amount of the selected collateral that can be liquidated, given the
 		//max amount of principal currency that is available for liquidation.
 		vars.maxAmountCollateralToLiquidate = vars
 			.principalCurrencyPrice // 借资产 价格
 			.mul(_purchaseAmount)  // 借资产 数量 ---- 产生ETH价值/抵押物价格= 抵押物数量
-			.div(vars.collateralPrice)
+			.mul(10 ** vars.collateralDecimals)
+			.div(vars.collateralPrice.mul(10 ** vars.principalDecimals))
 			.mul(vars.liquidationBonus)
 			.div(100);
 
@@ -385,7 +388,8 @@ contract LendingPoolLiquidationManager is
 			principalAmountNeeded = vars
 				.collateralPrice
 				.mul(collateralAmount)
-				.div(vars.principalCurrencyPrice)
+				.mul(10 ** vars.principalDecimals)
+                .div(vars.principalCurrencyPrice.mul(10 ** vars.collateralDecimals))
 				.mul(100)
 				.div(vars.liquidationBonus);
 		} else {
