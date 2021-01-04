@@ -1,6 +1,7 @@
 const {accounts, contract, web3,defaultSender} = require("@openzeppelin/test-environment");
 const {
-    BN,          // Big Number support
+    BN,      
+    time,    // Big Number support
     constants,    // Common constants, like the zero address and largest integers
     expectEvent,  // Assertions for emitted events
     expectRevert // Assertions for transactions that should fail
@@ -37,7 +38,7 @@ const TokenDistributor = contract.fromArtifact("TokenDistributor");
 // mock
 const TokenBAT = contract.fromArtifact("MockBAT");
 const TokenDAI = contract.fromArtifact("MockDAI"); 
-const TokenTUSD = contract.fromArtifact("MockTUSD"); //18
+const TokenUSDC = contract.fromArtifact("MockUSDC"); //18
 
 const MockFlashLoanReceiver = contract.fromArtifact("MockFlashLoanReceiver"); //18
 
@@ -54,7 +55,7 @@ let timeTravel = async (seconds)  =>  {
     })
 }
 
-// let usdDecimalBN = (new BN(10)).pow(new BN(6));
+let usdDecimalBN = (new BN(10)).pow(new BN(6));
 let ethDecimalBN = (new BN(10)).pow(new BN(18));
 let rayDecimalBN = (new BN(10)).pow(new BN(27));
 
@@ -149,7 +150,7 @@ describe("AAVE Flashloan ", function () {
         lpConfigurator = await LendingPoolConfigurator.at(lpConfAddr)
 
 
-        let mockToken = [TokenDAI, TokenBAT, TokenTUSD]
+        let mockToken = [TokenDAI, TokenUSDC]
         for (let token of mockToken) {
             let _token = await token.new();
             let tokenSymbol = await _token.symbol()
@@ -220,8 +221,9 @@ describe("AAVE Flashloan ", function () {
 
         let _aDai =await this.lpCoreContractProxy.getReserveATokenAddress(this.DAI.address); 
         this.aDAI =  await AToken.at(_aDai);
-        let _aUSDC =await this.lpCoreContractProxy.getReserveATokenAddress(this.TUSD.address); 
-        this.aTUSD =  await AToken.at(_aUSDC);
+
+        let _aUSDC =await this.lpCoreContractProxy.getReserveATokenAddress(this.USDC.address); 
+        this.aUSDC =  await AToken.at(_aUSDC);
  
         let _fee = await provider.getFeeProvider();
 
@@ -234,37 +236,82 @@ describe("AAVE Flashloan ", function () {
         this.timeout(50000)
 
         const allowAmount = web3.utils.toWei("1000", "ether")
-        await this.DAI.approve(this.lpCoreAddr, allowAmount,{from:alice})
-        await this.BAT.approve(this.lpCoreAddr, allowAmount,{from:bob})
-        await this.TUSD.approve(this.lpCoreAddr, allowAmount)
+        await this.DAI.approve(this.lpCoreAddr, allowAmount,{from:alice}) 
+        await this.USDC.approve(this.lpCoreAddr, allowAmount)
 
-        await this.lpContractProxy.deposit(this.DAI.address, allowAmount, 0,{from:alice})
-        await this.lpContractProxy.deposit(this.BAT.address, allowAmount, 0,{from:bob}) 
-        await this.lpContractProxy.deposit(this.TUSD.address, allowAmount, 0 )
+        await this.lpContractProxy.deposit(this.DAI.address, allowAmount, 0,{from:alice}) 
+
+        await this.lpContractProxy.deposit(this.USDC.address, new BN(1000).mul(usdDecimalBN), 0 )
 
 
     }).timeout(500000);
 
-    it("Flashloan", async () => {
+    it("Flashloan DAI 18", async () => {
         let _receiver = this.flashloanReceiver.address 
-        const allowAmount = web3.utils.toWei("1", "ether") 
+        const allowAmount = web3.utils.toWei("1", "ether")  
+        await this.DAI.transfer(_receiver, allowAmount);
+
         let parm = web3.utils.hexToBytes('0x');
+        let tokenDist =await this.lpAddressProvider.getTokenDistributor(); 
+        let senderBalBefor=await this.DAI.balanceOf(_receiver);  
+        let tokenDistributorBalBefor=await this.DAI.balanceOf(tokenDist);  
+
+        let blockHigth =await web3.eth.getBlockNumber()
+  
         let tx = await this.lpContractProxy.flashLoan(_receiver,this.DAI.address,allowAmount,parm); 
 
-        let tokenDist =await this.lpAddressProvider.getTokenDistributor();
-        let tokenDistributorBal=await this.DAI.balanceOf(tokenDist); // 清算用户本来有的资产 
-
-        // let borrowFee =await this.feeProvider.calculateLoanOriginationFee(sender, allowAmount); 
-
+        await time.advanceBlockTo( new BN(blockHigth).add(new BN(10)));
+        blockHigth =await web3.eth.getBlockNumber()
+ 
+        let tokenDistributorBalAfter=await this.DAI.balanceOf(tokenDist);  
+        let senderBalAfter=await this.DAI.balanceOf(_receiver);  
+  
         let userFee = new BN(allowAmount).mul(new BN("35")).div(new BN("10000"))
-        let protocolFee =userFee.mul(new BN("30")).div(oneHundredBN)
-        let fee = userFee.sub(protocolFee)
+        let senderBal = senderBalBefor.sub(senderBalAfter)
+        expect(userFee).to.be.bignumber.eq(senderBal,"合约使用闪电贷款费用验证");
 
-        console.log(tokenDistributorBal.toString(),protocolFee.toString(),fee.toString())
+        let protocolFee =userFee.mul(new BN("30")).div(new BN("100")) 
+        let tokenDistributorBal = tokenDistributorBalAfter.sub(tokenDistributorBalBefor); 
+        expect(tokenDistributorBal).to.be.bignumber.eq(protocolFee,"协议费用");   // 
+
+        let fee = userFee.sub(protocolFee)
        
 
     }).timeout(500000);
  
+    it("Flashloan USDC 6", async () => {
+        let reserve = this.USDC 
+        let _receiver = this.flashloanReceiver.address 
+        const allowAmount = usdDecimalBN
+        await reserve.transfer(_receiver, allowAmount);
+
+        let parm = web3.utils.hexToBytes('0x');
+        let tokenDist =await this.lpAddressProvider.getTokenDistributor(); 
+        let senderBalBefor=await reserve.balanceOf(_receiver);  
+        let tokenDistributorBalBefor=await reserve.balanceOf(tokenDist);  
+
+        let blockHigth =await web3.eth.getBlockNumber()
+  
+        let tx = await this.lpContractProxy.flashLoan(_receiver,reserve.address,allowAmount,parm); 
+
+        await time.advanceBlockTo( new BN(blockHigth).add(new BN(10)));
+        blockHigth =await web3.eth.getBlockNumber()
+ 
+        let tokenDistributorBalAfter=await reserve.balanceOf(tokenDist);  
+        let senderBalAfter=await reserve.balanceOf(_receiver);  
+  
+        let userFee = new BN(allowAmount).mul(new BN("35")).div(new BN("10000"))
+        let senderBal = senderBalBefor.sub(senderBalAfter)
+        expect(userFee).to.be.bignumber.eq(senderBal,"合约使用闪电贷款费用验证");
+
+        let protocolFee =userFee.mul(new BN("30")).div(new BN("100")) 
+        let tokenDistributorBal = tokenDistributorBalAfter.sub(tokenDistributorBalBefor); 
+        expect(tokenDistributorBal).to.be.bignumber.eq(protocolFee,"协议费用");   // 
+
+        let fee = userFee.sub(protocolFee)
+       
+
+    }).timeout(500000);
 });
 
 

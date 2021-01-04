@@ -42,7 +42,7 @@ contract MockFlashLoanReceiver is FlashLoanReceiverBase {
         //note: if the reserve is eth, the mock contract must receive at least _fee ETH before calling executeOperation
 
         if(_reserve != EthAddressLib.ethAddress()) {
-            token.mint(_fee);
+            // token.mint(_fee);
         }
         //returning amount + fee to the destination
         transferFundsBackToPoolInternal(_reserve, _amount.add(_fee));
