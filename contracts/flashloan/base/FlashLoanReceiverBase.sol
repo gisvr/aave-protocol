@@ -35,9 +35,7 @@ contract FlashLoanReceiverBase is IFlashLoanReceiver {
             return;
         }
 
-        IERC20(_reserve).safeTransfer(_destination, _amount);
-
-
+        IERC20(_reserve).safeTransfer(_destination, _amount); 
     }
 
     function getBalanceInternal(address _target, address _reserve) internal view returns(uint256) {
