@@ -74,7 +74,7 @@ let _purchaseAmount = (new BN("179")).mul(ethDecimalBN); //374 临界值
 
 const [alice, bob, liquid] = accounts;
 
-describe("AAVE Flashloan ", function () {
+describe("AAVE Borrow ", function () {
 
     before(async () => {
         //1
@@ -250,128 +250,121 @@ describe("AAVE Flashloan ", function () {
 
 
     }).timeout(500000);
-
-    it("Flashloan DAI 18", async () => {
-        let reserve = this.DAI 
-        let _receiver = this.flashloanReceiver.address 
-        const allowAmount = web3.utils.toWei("1", "ether")  
-        await this.DAI.transfer(_receiver, allowAmount);
-
-        let totalSupply1 = await this.aDAI.totalSupply();
-
-        let indexBefor =await this.lpCoreContractProxy.getReserveLiquidityCumulativeIndex(reserve.address)
-
-        let parm = web3.utils.hexToBytes('0x');
-        let tokenDist =await this.lpAddressProvider.getTokenDistributor(); 
-        let senderBalBefor=await this.DAI.balanceOf(_receiver);  
-        let tokenDistributorBalBefor=await this.DAI.balanceOf(tokenDist);  
-
-        let blockHigth =await web3.eth.getBlockNumber()
-  
-        let tx = await this.lpContractProxy.flashLoan(_receiver,this.DAI.address,allowAmount,parm); 
-
-        await time.advanceBlockTo( new BN(blockHigth).add(new BN(10)));
-        blockHigth =await web3.eth.getBlockNumber()
  
-        let tokenDistributorBalAfter=await this.DAI.balanceOf(tokenDist);  
-        let senderBalAfter=await this.DAI.balanceOf(_receiver);  
-  
-        let userFee = new BN(allowAmount).mul(new BN("35")).div(new BN("10000"))
-        let senderBal = senderBalBefor.sub(senderBalAfter)
-        expect(userFee).to.be.bignumber.eq(senderBal,"合约使用闪电贷款费用验证");
 
-        let protocolFee =userFee.mul(new BN("30")).div(new BN("100")) 
-        let tokenDistributorBal = tokenDistributorBalAfter.sub(tokenDistributorBalBefor); 
-        expect(tokenDistributorBal).to.be.bignumber.eq(protocolFee,"协议费用");   // 
-
-        let totalSupply2 = await this.aDAI.totalSupply();
+    it("sender borrow DAI sender", async () => {
+        this.timeout(50000)
+        let _user = bob
+        let _reserve = this.DAI.address; 
+        let _tokenBal =await this.DAI.balanceOf(sender); 
 
         
 
+        let totalSupply1 = await this.aDAI.totalSupply();
+      
+        let userAccountData = await this.lpContractProxy.getUserAccountData(sender);  
+        // aaveMarket.userAccountData(sender,userAccountData,ethUSD)
+        let availableBorrowsETH = userAccountData.availableBorrowsETH;
+        let _priceEth =await this.priceOracle.getAssetPrice(_reserve);  
+        // 将可借的 EHT转换成对应的资产
+        let borrowAmount = availableBorrowsETH.mul(ethDecimalBN).div(_priceEth);
 
-        // 用户分配到到 token 数量
-        let fee = userFee.sub(protocolFee)
+        console.log("borrow DAI",borrowAmount.div(ethDecimalBN).toString(),borrowAmount.toString(),)
+ 
+        let aTokenBal3=await this.aDAI.principalBalanceOf(_user);
+        // 浮动率借款
+        await this.lpContractProxy.borrow(_reserve, borrowAmount, 2, 0); 
 
-        expect(totalSupply2).to.be.bignumber.eq(totalSupply1.add(fee),"Atoken totalSupply"); 
+        let aTokenBal4=await this.aDAI.principalBalanceOf(_user); 
 
-        let indexAfter = await this.lpCoreContractProxy.getReserveLiquidityCumulativeIndex(reserve.address)
+        // console.log("aTokenBal3",aTokenBal3.toString(),aTokenBal4.toString())
 
-        // expect(fee.add(indexBefor)).to.be.bignumber.eq(indexAfter,"指数更新 ");   
-       
-       
+        // ---------------检查用户资产数据-------
+        let userReserveData = await this.lpContractProxy.getUserReserveData(_reserve,sender);  
+        await timeTravel(2); 
+        // 检查 借贷数据是否正确
+        expect(borrowAmount).to.be.bignumber.equal(userReserveData.currentBorrowBalance);  
+        expect(borrowAmount).to.be.bignumber.equal(userReserveData.principalBorrowBalance);  
+        // 检查 用户得到的Token
+        let tokenAmount =await this.DAI.balanceOf(sender); 
+        expect(borrowAmount).to.be.bignumber.equal(tokenAmount.sub(_tokenBal)); 
+        // 检查 利率模型
+        expect(userReserveData.borrowRateMode).to.be.bignumber.equal("2"); 
+        // 检查 借款费用
+        let borrowFee =await this.feeProvider.calculateLoanOriginationFee(sender, availableBorrowsETH);  
+        let feeAmount = borrowFee.mul(ethDecimalBN).div(_priceEth); 
+        expect(userReserveData.originationFee).to.be.bignumber.equal(feeAmount);  
+      
+        // ---------------检查用户资产数据-------
+        userAccountData = await this.lpContractProxy.getUserAccountData(sender); 
+        // 借款额度
+        expect(userAccountData.totalBorrowsETH).to.be.bignumber.equal(availableBorrowsETH); 
+        // 检查费用
+        expect(userAccountData.totalFeesETH).to.be.bignumber.equal(borrowFee);  
+
+        let totalSupply2 = await this.aDAI.totalSupply();
+
+        // 
+        expect(totalSupply2).to.be.bignumber.eq(totalSupply1,"Atoken totalSupply"); 
+ 
 
     }).timeout(500000);
  
-    it("Flashloan USDC 6", async () => {
-        let reserve = this.USDC 
-        let _receiver = this.flashloanReceiver.address 
-        const allowAmount = usdDecimalBN
-        await reserve.transfer(_receiver, allowAmount);
-        let indexBefor =await this.lpCoreContractProxy.getReserveLiquidityCumulativeIndex(reserve.address)
-
-        let parm = web3.utils.hexToBytes('0x');
-        let tokenDist =await this.lpAddressProvider.getTokenDistributor(); 
-        let senderBalBefor=await reserve.balanceOf(_receiver);  
-        let tokenDistributorBalBefor=await reserve.balanceOf(tokenDist);  
-
-        let blockHigth =await web3.eth.getBlockNumber()
-  
-        let tx = await this.lpContractProxy.flashLoan(_receiver,reserve.address,allowAmount,parm); 
-
-        await time.advanceBlockTo( new BN(blockHigth).add(new BN(10)));
-        blockHigth =await web3.eth.getBlockNumber()
- 
-        let tokenDistributorBalAfter=await reserve.balanceOf(tokenDist);  
-        let senderBalAfter=await reserve.balanceOf(_receiver);  
-  
-        let userFee = new BN(allowAmount).mul(new BN("35")).div(new BN("10000"))
-        let senderBal = senderBalBefor.sub(senderBalAfter)
-        expect(userFee).to.be.bignumber.eq(senderBal,"合约使用闪电贷款费用验证");
-
-        let protocolFee =userFee.mul(new BN("30")).div(new BN("100")) 
-        let tokenDistributorBal = tokenDistributorBalAfter.sub(tokenDistributorBalBefor); 
-        expect(tokenDistributorBal).to.be.bignumber.eq(protocolFee,"协议费用");   // 
-
-        let fee = userFee.sub(protocolFee)
-
-        let indexAfter = await this.lpCoreContractProxy.getReserveLiquidityCumulativeIndex(reserve.address)
-
-        // console.log(fee.toString(),indexBefor.toString(),indexAfter.toString())
-       
-
-    }).timeout(500000); 
-
     it("depoist balanceOf bob",async ()=>{
-        let _user = bob
-        const allowAmount = web3.utils.toWei("1000", "ether")
+        let _user = bob 
+
+        const allowAmount = new BN("1000").mul(ethDecimalBN)
+        let amount = allowAmount
+        await this.DAI.approve(this.lpCoreAddr, allowAmount,{from:_user})
+        let aTokenBal3=await this.aDAI.principalBalanceOf(_user);
+        let tx=  await this.lpContractProxy.deposit(this.DAI.address, allowAmount, 0,{from:_user}) 
+        await expectEvent(tx, 'Deposit', { _amount: amount });   
+        await expectEvent.inTransaction(tx.tx, this.aDAI, "Transfer", {from:constants.ZERO_ADDRESS,to:_user,value:amount}) 
+        let aTokenBal4 = await this.aDAI.principalBalanceOf(_user);  
+
+        let tokenBal  = await this.aDAI.balanceOf(_user)
+
+        expect(aTokenBal4).to.be.bignumber.eq(tokenBal,"bob Atoken principal = token balance"); 
+
+        console.log(tokenBal.toString())
+
+        let increase =  aTokenBal4.sub(aTokenBal3.add(allowAmount)) 
+        await expectEvent.inTransaction(tx.tx, this.aDAI, "MintOnDeposit", {_from:_user,_value:allowAmount,_fromBalanceIncrease:increase})
+ 
+        return _balance
+            .wadToRay()
+            .rayMul(core.getReserveNormalizedIncome(underlyingAssetAddress))
+            .rayDiv(userIndexes[_user])
+            .rayToWad();
+
+        // expect(aTokenBal4).to.be.bignumber.eq(aTokenBal3.add(allowAmount),"bob Atoken principal balance"); 
+    }).timeout(500000);
+
+    it.skip("depoist balanceOf alice",async ()=>{
+
+        let _user = alice
+        let totalSupply1 = await this.aDAI.totalSupply();
+
+        const allowAmount = new BN("1000").mul(ethDecimalBN)
         await this.DAI.approve(this.lpCoreAddr, allowAmount,{from:_user})
         let aTokenBal3=await this.aDAI.principalBalanceOf(_user);
         await this.lpContractProxy.deposit(this.DAI.address, allowAmount, 0,{from:_user}) 
         let aTokenBal4=await this.aDAI.principalBalanceOf(_user);
-        let amount = new BN(allowAmount);
-        expect(aTokenBal4).to.be.bignumber.eq (aTokenBal3.add(amount),"bob Atoken principal balance"); 
+        
+        let totalSupply2 = await this.aDAI.totalSupply();
+        console.log(totalSupply1.toString(),totalSupply2.sub(allowAmount).toString())
+
+        expect(aTokenBal4).to.be.bignumber.eq (aTokenBal3.add(allowAmount),"alice Atoken principal balance"); 
     }).timeout(500000);
 
-    it("depoist balanceOf alice",async ()=>{
-
-        const allowAmount = web3.utils.toWei("1000", "ether")
-        await this.DAI.approve(this.lpCoreAddr, allowAmount,{from:alice})
-        let aTokenBal3=await this.aDAI.principalBalanceOf(alice);
-        await this.lpContractProxy.deposit(this.DAI.address, allowAmount, 0,{from:alice}) 
-        let aTokenBal4=await this.aDAI.principalBalanceOf(alice);
-        let amount = new BN(allowAmount);
-        expect(aTokenBal4).to.be.bignumber.eq (aTokenBal3.add(amount),"alice Atoken principal balance"); 
-    }).timeout(500000);
-
-    it("depoist balanceOf sender",async ()=>{
+    it.skip("depoist balanceOf sender",async ()=>{
         let _user = sender
-        const allowAmount = web3.utils.toWei("1000", "ether")
+        const allowAmount = new BN("1000").mul(ethDecimalBN)
         await this.DAI.approve(this.lpCoreAddr, allowAmount,{from:_user})
         let aTokenBal3=await this.aDAI.principalBalanceOf(_user);
         await this.lpContractProxy.deposit(this.DAI.address, allowAmount, 0,{from:_user}) 
-        let aTokenBal4=await this.aDAI.principalBalanceOf(_user);
-        let amount = new BN(allowAmount);
-        expect(aTokenBal4).to.be.bignumber.eq (aTokenBal3.add(amount),"sender Atoken principal balance"); 
+        let aTokenBal4=await this.aDAI.principalBalanceOf(_user); 
+        expect(aTokenBal4).to.be.bignumber.eq (aTokenBal3.add(allowAmount),"sender Atoken principal balance"); 
     }).timeout(500000);
 });
 

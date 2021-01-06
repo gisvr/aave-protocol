@@ -162,7 +162,7 @@ library CoreLibrary {
 	 * @param _decimals the number of decimals of the underlying asset
 	 * @param _interestRateStrategyAddress the address of the interest rate strategy contract
 	 **/
-	function init(
+	function init( // #BUG TEST
 		ReserveData storage _self,
 		address _aTokenAddress,
 		uint256 _decimals,
