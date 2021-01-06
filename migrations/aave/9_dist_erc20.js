@@ -16,7 +16,8 @@ const TokenZRX = artifacts.require("MockZRX");
 let ten = web3.utils.toBN("10");
 
 //给发行者发放代币
-let tokenMint = async (Token, total) => {
+let tokenMint = async (Token, total,accounts) => { 
+    let [sender,alice, bob, liquid] = accounts;
     let erc20Token = await Token.deployed()
     let tokenDecimals = await erc20Token.decimals()
     let tokenSymbol = await erc20Token.symbol()
@@ -24,7 +25,10 @@ let tokenMint = async (Token, total) => {
 
     let mintTotal = total.mul(ten.pow(tokenDecimals)).toString()
     // console.debug("mintTotal", mintTotal)
-    await erc20Token.mint(mintTotal)
+    await erc20Token.mint(mintTotal, {from: sender}) 
+    await erc20Token.mint(mintTotal, {from: alice});
+    await erc20Token.mint(mintTotal, {from: bob});
+    await erc20Token.mint(mintTotal, {from: liquid});
 
     let totalSupply = await erc20Token.totalSupply()
     console.debug(tokenSymbol, tokenName, "address:", erc20Token.address, tokenDecimals.toString(), totalSupply.toString())
@@ -37,6 +41,6 @@ module.exports = async (deployer, network, accounts) => {
     let mockToken = [TokenWBTC, TokenDAI,TokenBAT, TokenUSDT,TokenUSDC]
     for (let token of mockToken) {
         await deployer.deploy(token);
-        await tokenMint(token, total)
+        await tokenMint(token, total,accounts)
     }
 };
