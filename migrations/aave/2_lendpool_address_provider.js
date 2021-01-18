@@ -2,7 +2,7 @@ const LendingPoolAddressProvider = artifacts.require("LendingPoolAddressesProvid
 
 // not constructor
 module.exports = async (deployer, network, accounts) => {
-    let poolManager = accounts[0]
+    let poolManager =  deployer.networks[network].from;
     await deployer.deploy(LendingPoolAddressProvider)
     let provider = await LendingPoolAddressProvider.deployed()
     await provider.setLendingPoolManager(poolManager);

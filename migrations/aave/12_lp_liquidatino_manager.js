@@ -3,10 +3,11 @@ const LendingPoolLiquidationManager = artifacts.require("LendingPoolLiquidationM
 const LendingPool = artifacts.require("LendingPool");
 
 module.exports = async (deployer, network, accounts) => {
+    let sender =  deployer.networks[network].from;
     await deployer.deploy(LendingPoolLiquidationManager)
     let provider = await LendingPoolAddressProvider.deployed()
     let lpLiquidationManager = await LendingPoolLiquidationManager.deployed()
-    await provider.setLendingPoolLiquidationManager(accounts[0]);
+    await provider.setLendingPoolLiquidationManager(sender);
 
 };
 
