@@ -39,15 +39,15 @@ module.exports = {
         kovan: {
             provider: () => new HDWalletProvider(process.env.MNENOMIC, "https://kovan.infura.io/v3/" + process.env.INFURA_API_KEY, 0, 10),
             network_id: 42,         // Kovan's id
-            gas: 6700000,           // Gas sent with each transaction (default: ~6700000)
-            gasPrice: 20000000000,  // 20 gwei (in wei) (default: 100 gwei)
+            gas: 670e4,           // Gas sent with each transaction (default: ~6700000)
+            gasPrice: 20e9,  // 20 gwei (in wei) (default: 100 gwei)
         },
 
         main: {
             provider: () => new HDWalletProvider(process.env.MNENOMIC, "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY, 0, 10),
             network_id: 1,          // Main's id
-            gas: 3500000,           // Gas sent with each transaction (default: ~5000000)
-            gasPrice: 90000000000,  // 75 gwei (in wei) (default: 100 gwei)
+            gas: 500e4,           // Gas sent with each transaction (default: ~5000000)
+            gasPrice: 90e9,  // 75 gwei (in wei) (default: 100 gwei)
         },
 
     },
