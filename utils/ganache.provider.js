@@ -1,5 +1,5 @@
-
-let host = "http://39.102.101.142:8545";
+let conf = require("../config/index")
+let host = conf[conf.network].node.url;
 let Web3 = require("web3")
 const web3 = new Web3(host)
 let contract = require("@truffle/contract");
@@ -52,7 +52,7 @@ module.exports = {
         return getArttifact(path, addr);
     },
 
-    async getAaveV1(name, addr = false) {
+    async getAaveV1(name, addr = false) { 
         let path = "/Users/liyu/github/mars/aave-protocol/build/contracts/" + name + ".json";
         return getArttifact(path, addr);
     },

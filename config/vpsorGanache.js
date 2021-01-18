@@ -18,7 +18,7 @@ const oneEth = new BigNumber(Math.pow(10, 18));
 module.exports = {
   node: { 
     url:"http://103.152.170.221:8545", 
-    network_id: '*',
+    network_id: '8545',
     from: "0x855FA758c77D68a04990E992aA4dcdeF899F654A" 
   }
 };
