@@ -10,7 +10,7 @@ nodeProvider.provider= new HDWalletProvider(
   nodeProvider.url,
   0,
   12
-),
+);
 
 
 module.exports = {
