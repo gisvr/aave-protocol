@@ -5,8 +5,8 @@ const web3 = new Web3(host);
 let contract = require("@truffle/contract");
 const HDWalletProvider = require('truffle-hdwallet-provider');
 require("dotenv").config();
-let HD = new HDWalletProvider(process.env.MNENOMIC, host, 0, 20);
-
+let HD = new HDWalletProvider(process.env.MNENOMIC, host, 11, 5);
+ 
 let accounts = [];
 
 let getArttifact = async (path, addr) => {
@@ -19,13 +19,14 @@ let getArttifact = async (path, addr) => {
       web3.eth.accounts.wallet.add(pri);
     });
   }
+  let sender = accounts[0]
 
   let _art = require(path);
   let arttifact = contract(_art);
   arttifact.setProvider(web3.currentProvider);
   arttifact.setWallet(web3.eth.accounts.wallet);
   arttifact.defaults({
-    from: accounts[0],
+    from: sender,
     gas: 8e6,
     gasPrice: 20e9,
   });
@@ -40,21 +41,13 @@ let getArttifact = async (path, addr) => {
 };
 
 module.exports = {
-  // async getArttifact(name,addr=false) {
-  //     let path = "/Users/liyu/github/mars/mint-protocol/build/contracts/" + name + ".json";
-  //     return getArttifact(path,addr)
-  // },
-
+ 
   async getMint(name, addr = false) {
     let path =
       "/Users/liyu/github/mars/mint-protocol/build/contracts/" + name + ".json";
     return getArttifact(path, addr);
   },
-
-  // async getEarn(name,addr=false){
-  //     let path = "/Users/liyu/github/mars/earn-contracts/build/contracts/" + name + ".json";
-  //     return getArttifact(path,addr);
-  // },
+ 
 
   async getAave(name, addr = false) {
     let path =

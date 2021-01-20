@@ -1,16 +1,11 @@
- 
+
 const HDWalletProvider = require('truffle-hdwallet-provider');
 const conf = require("./config/index")
 
 require('dotenv').config();
 
 let nodeProvider = conf[conf.network].node;
-nodeProvider.provider= new HDWalletProvider(
-  process.env.MNENOMIC,
-  nodeProvider.url,
-  0,
-  12
-);
+nodeProvider.provider = new HDWalletProvider(process.env.MNENOMIC, nodeProvider.url, 10, 5);
 
 
 module.exports = {
@@ -34,8 +29,8 @@ module.exports = {
         etherscan: process.env.ETHERSCAN_KEY
     },
 
-    networks: { 
-        development:nodeProvider, 
+    networks: {
+        development: nodeProvider,
         kovan: {
             provider: () => new HDWalletProvider(process.env.MNENOMIC, "https://kovan.infura.io/v3/" + process.env.INFURA_API_KEY, 0, 10),
             network_id: 42,         // Kovan's id
